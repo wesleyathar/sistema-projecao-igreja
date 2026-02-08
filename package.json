@@ -1,0 +1,38 @@
+{
+  "name": "igreja-caminhando-para-canaa",
+  "version": "1.0.0",
+  "description": "Professional church lyrics projection system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.13.2",
+    "cheerio": "^1.2.0",
+    "ip": "^1.1.8",
+    "ws": "^8.13.0"
+  },
+  "bin": "server.js",
+  "pkg": {
+    "targets": [
+      "node16-win-x64"
+    ],
+    "assets": [
+      "style.css",
+      "script.js",
+      "index.html",
+      "manifest.json",
+      "icon-192.png",
+      "icon-512.png",
+      "node_modules/axios/package.json",
+      "node_modules/axios/dist/**/*"
+    ],
+    "outputPath": "dist"
+  },
+  "devDependencies": {
+    "pkg": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

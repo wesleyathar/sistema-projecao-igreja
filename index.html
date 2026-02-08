@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Igreja Evangélica Caminhando para CANAÃ</title>
+
+    <!-- PWA Support -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6c5ce7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Louvor CANAÃ">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+    <link rel="stylesheet" href="style.css?v=3.5.2">
+</head>
+
+<body>
+
+    <!-- Start Screen / Role Selection -->
+    <div id="start-screen">
+        <div
+            style="position:fixed; top:10px; right:120px; color:black; background:#2ed573; padding:5px 10px; font-weight:bold; border-radius:5px; z-index:9999;">
+            VER: 3.5 FINAL</div>
+        <h1>Igreja Evangélica Caminhando para CANAÃ</h1>
+        <div class="role-btn" onclick="selectRole('display')">🖥️ TV / Telão</div>
+        <div class="role-btn" onclick="selectRole('control')">📱 Controle</div>
+        <div class="role-btn" onclick="selectRole('bible')">📖 Bíblia</div>
+        <div class="role-btn" onclick="selectRole('video')">🎬 Mídia / Extras</div>
+    </div>
+
+    <!-- Display View (TV) -->
+    <div id="display-view">
+        <div class="bubbles" id="bubbles-container">
+            <!-- Bubbles injected by JS -->
+        </div>
+        <div id="video-container"
+            style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; background:black;">
+            <iframe id="youtube-player" width="100%" height="100%" src="" frameborder="0"
+                allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </div>
+        <div id="media-image-container"
+            style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; background:black; display:flex; justify-content:center; align-items:center;">
+            <img id="media-image" src="" style="max-width:100%; max-height:100%; object-fit:contain;">
+        </div>
+        <div id="media-announcement-container"
+            style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; background: rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; flex-direction:column; padding: 40px; text-align:center;">
+            <h1 id="announcement-text" style="font-size: 8vh; color: white; line-height: 1.4; white-space: pre-wrap;">
+            </h1>
+        </div>
+        <div id="lyrics-container">
+            <!-- Lyrics injected by JS -->
+        </div>
+        <!-- REST SCREEN OVERLAY -->
+        <div id="rest-screen-overlay" style="display:none;">
+            <div
+                style="position:fixed; top:20px; right:30px; color:rgba(255,255,255,0.3); font-weight:bold; font-size: 14px; z-index:9999;">
+                LOUVOR CANAÃ</div>
+            <h1>Igreja Evangélica<br>Caminhando para CANAÃ</h1>
+        </div>
+    </div>
+
+    <!-- Controller View (Mobile) -->
+    <div id="control-view">
+        <!-- Header -->
+        <div class="control-header">
+            <div class="header-top">
+                <div>
+                    <h2>Controle de Louvor</h2>
+                    <div class="connection-indicator">
+                        <span id="connection-dot" class="dot"></span>
+                        <span id="connection-status">Desconectado</span>
+                        <span class="terminal-info">• Terminal 01</span>
+                    </div>
+                </div>
+                <button class="icon-btn" onclick="showStartScreen()">🏠</button>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-container">
+            <div class="search-wrapper">
+                <input type="text" id="song-search" placeholder="🔍 Buscar música ou hino..." oninput="filterSongs()"
+                    onfocus="showResults()">
+                <div id="search-results" class="search-results-list"></div>
+            </div>
+        </div>
+
+        <!-- Load Song Button -->
+        <div class="main-actions">
+            <button class="btn-load-song" onclick="loadSelectedSong()">
+                ☁️ Carregar Música
+            </button>
+            <button class="btn-add-song" onclick="openAddModal()">+</button>
+        </div>
+
+        <!-- Song Select (Hidden Select) -->
+        <select id="song-select" style="display:none;">
+            <option value="">Carregando músicas...</option>
+        </select>
+
+        <!-- Navigation Controls -->
+        <div class="nav-controls">
+            <button class="nav-btn" onclick="prevVerse()">
+                <span class="nav-icon">⬆</span>
+                <span class="nav-label">Anterior</span>
+            </button>
+            <button class="nav-btn" onclick="nextVerse()">
+                <span class="nav-icon">⬇</span>
+                <span class="nav-label">Próxima</span>
+            </button>
+        </div>
+
+        <!-- Action Controls (Toolbar) -->
+        <div class="actions-toolbar">
+            <button class="action-btn blackout-btn" onclick="toggleBlackout()">
+                <span class="action-icon">🚫</span>
+                <span class="action-label">Blackout</span>
+            </button>
+            <button class="action-btn rest-btn" onclick="toggleRestScreen()">
+                <span class="action-icon">☕</span>
+                <span class="action-label">Descanso</span>
+            </button>
+            <button class="action-btn fullscreen-btn" onclick="requestFullScreenDisplay()">
+                <span class="action-icon">⛶</span>
+                <span class="action-label">Tela Cheia</span>
+            </button>
+        </div>
+
+        <!-- Verses Section (Now inside control-view) -->
+        <div class="verses-section">
+            <div class="verses-header">
+                <span class="verses-title">ESTROFES</span>
+                <span id="active-song-title" class="current-song-indicator">Nenhuma música selecionada</span>
+            </div>
+            <div id="verse-list" class="verse-list-modern">
+                <!-- Verses injected by JS -->
+            </div>
+        </div>
+
+        <!-- QR Code Section (Now inside control-view) -->
+        <div class="qr-section">
+            <div class="qr-container">
+                <img id="qr-code" alt="QR Code" style="width: 120px; height: 120px; display:none;">
+            </div>
+            <p class="qr-label">Escaneie para conectar outro terminal</p>
+        </div>
+    </div>
+    <!-- End of control-view -->
+
+    <!-- Bible View (Dedicated) -->
+    <div id="bible-view" style="display: none;">
+        <div class="header">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2>📖 Bíblia Sagrada</h2>
+                <button class="btn" style="padding: 5px 15px; font-size: 14px;" onclick="showStartScreen()">🏠
+                    Menu</button>
+            </div>
+            <div class="status-bar">
+                <span id="bible-connection-status" class="connection-status">Desconectado</span>
+                <span id="active-bible-ref">Nenhum capítulo</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Buscar</h3>
+            <div style="display:flex; gap:5px; margin-bottom:10px;">
+                <select id="bible-book" style="flex:2">
+                    <!-- Populated by JS -->
+                </select>
+                <input type="number" id="bible-chapter" placeholder="Cap." style="flex:1" min="1" value="1">
+                <input type="number" id="bible-verse" placeholder="Vers." style="flex:1" min="1">
+            </div>
+            <button class="btn primary" style="width:100%" onclick="loadBibleChapter()">Carregar</button>
+        </div>
+
+        <!-- Bible Navigation -->
+        <div class="nav-controls" style="margin-bottom: 20px;">
+            <button class="nav-btn" onclick="prevVerse()">
+                <span class="nav-icon">⬆</span>
+                <span class="nav-label">Anterior</span>
+            </button>
+            <button class="nav-btn" onclick="nextVerse()">
+                <span class="nav-icon">⬇</span>
+                <span class="nav-label">Próximo</span>
+            </button>
+        </div>
+
+        <div class="card">
+            <h3>📜 Versículos</h3>
+            <div id="bible-verse-list" class="verse-list" style="max-height: 400px; overflow-y: auto;">
+                <!-- Verse previews injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Media Control View -->
+    <div id="video-control-view" style="display: none;">
+        <div class="header">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2>📺 Mídia e Extras</h2>
+                <button class="btn" style="padding: 5px 15px; font-size: 14px;" onclick="showStartScreen()">🏠
+                    Menu</button>
+            </div>
+            <div class="status-bar">
+                <span id="video-connection-status" class="connection-status">Desconectado</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🙏 Dízimos e Ofertas</h3>
+            <button class="btn primary" style="width:100%"
+                onclick="showTithes(); this.textContent='✓ Enviado!'; setTimeout(() => this.textContent='Exibir Imagem Pix', 1000)">Exibir
+                Imagem Pix</button>
+        </div>
+
+        <div class="card">
+            <h3>📢 Avisos</h3>
+            <textarea id="announcement-input" placeholder="Digite o aviso aqui..."
+                style="height: 100px; font-size: 18px;"></textarea>
+            <button class="btn primary" style="width:100%"
+                onclick="showAnnouncement(); this.textContent='✓ Enviado!'; setTimeout(() => this.textContent='Exibir Aviso', 1000)">Exibir
+                Aviso</button>
+        </div>
+
+        <div class="card">
+            <h3>🎬 Vídeo (YouTube)</h3>
+            <label>Link do YouTube:</label>
+            <input type="text" id="video-url-input" placeholder="Cole o link aqui...">
+
+            <div style="display:flex; gap:10px; margin-bottom: 20px;">
+                <button class="btn primary" style="flex:1"
+                    onclick="playCustomVideo(); this.textContent='✓ Reproduzindo!'; setTimeout(() => this.textContent='▶ Reproduzir', 1500)">▶
+                    Reproduzir</button>
+            </div>
+            <button class="btn" style="width:100%; background: #e056fd; color: white;"
+                onclick="playPresetVideo(); this.textContent='✓ Reproduzindo!'; setTimeout(() => this.textContent='🚀 Abertura Padrão', 1500)">
+                🚀 Abertura Padrão
+            </button>
+        </div>
+
+        <div class="card" style="background: rgba(139, 33, 33, 0.1); border: 1px solid rgba(255, 71, 87, 0.3);">
+            <h3>🛑 Controle Geral</h3>
+            <button class="btn danger" style="width:100%; height: 60px; font-size: 18px;" onclick="stopMedia()">
+                PARAR TUDO (Voltar ao Louvor)
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Add Song Modal -->
+    <div id="add-song-modal" class="modal-full">
+        <div class="control-header">
+            <div class="header-top">
+                <h2>Adicionar Música</h2>
+                <button class="icon-btn" onclick="closeAddModal()">✕</button>
+            </div>
+        </div>
+
+        <div class="modal-content-wrapper" style="padding: 20px;">
+            <div class="tab-container">
+                <button class="tab-btn active" onclick="switchTab('search-online')">🔍 Buscar Online</button>
+                <button class="tab-btn" onclick="switchTab('manual-add')">✏️ Manual</button>
+            </div>
+
+            <!-- Tab 1: Search Online -->
+            <div id="search-online" class="tab-content active">
+                <input type="text" id="online-search-input" placeholder="Digite o nome da música..."
+                    onkeyup="if(event.key === 'Enter') searchOnlineSong()">
+                <button class="btn primary" style="width:100%; margin-bottom:20px;"
+                    onclick="searchOnlineSong()">Buscar</button>
+                <div id="online-loading" style="display:none; text-align:center; padding: 10px;">⌛ Buscando...</div>
+                <div id="online-results-list"></div>
+            </div>
+
+            <!-- Tab 2: Manual Add -->
+            <div id="manual-add" class="tab-content">
+                <input type="text" id="new-song-title" placeholder="Título da Música">
+                <textarea id="new-song-lyrics"
+                    placeholder="Cole a letra aqui... (Use duas quebras de linha para separar estrofes)"></textarea>
+                <div class="modal-actions">
+                    <button class="btn danger" onclick="closeAddModal()">Cancelar</button>
+                    <button class="btn primary" onclick="saveNewSong()">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End of control-view wrapper (just in case) -->
+
+    <script src="script.js?v=3.5.2"></script>
+</body>
+
+</html>
