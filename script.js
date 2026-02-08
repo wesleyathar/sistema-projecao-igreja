@@ -152,17 +152,19 @@ function handleStateUpdate(state) {
             }
         }
 
-        // Toggle Rest Screen Button Class
-        const btnRest = document.querySelector('.rest-btn');
-        if (btnRest) {
+        // Toggle Rest Screen Button Class (ALL buttons)
+        const btnRestAll = document.querySelectorAll('.rest-btn');
+        btnRestAll.forEach(btnRest => {
             if (isRestScreen) {
                 btnRest.classList.add('active');
-                btnRest.querySelector('.action-label').textContent = 'ATIVO';
+                const label = btnRest.querySelector('.action-label');
+                if (label) label.textContent = 'ATIVO';
             } else {
                 btnRest.classList.remove('active');
-                btnRest.querySelector('.action-label').textContent = 'Descanso';
+                const label = btnRest.querySelector('.action-label');
+                if (label) label.textContent = 'Descanso';
             }
-        }
+        });
     } else if (role === 'bible') {
         renderBibleControl();
     } else if (role === 'video') {
