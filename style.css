@@ -822,18 +822,8 @@ textarea {
     justify-content: center;
     align-items: center;
     z-index: 100;
-    /* Above lyrics */
     text-align: center;
     animation: fadeIn 1s ease;
-}
-
-#rest-screen-overlay h1 {
-    font-size: 5vw;
-    color: var(--accent-blue);
-    text-shadow: 0 0 30px rgba(0, 168, 255, 0.4);
-    line-height: 1.2;
-    font-weight: 700;
-    letter-spacing: -1px;
 }
 
 @keyframes fadeIn {
