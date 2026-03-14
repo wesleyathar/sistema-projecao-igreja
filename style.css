@@ -906,14 +906,14 @@ textarea {
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     display: inline-block;
-    min-width: 300px;
+    min-width: 320px;
     margin: 0 auto;
 }
 
 @media (min-width: 768px) {
     .tithes-card {
         padding: 2.5rem 3rem;
-        min-width: 750px;
+        min-width: 850px;
     }
 }
 
@@ -962,7 +962,7 @@ textarea {
     letter-spacing: -0.025em;
     color: #ffffff;
     margin-top: 0.2rem;
-    word-break: break-all;
+    white-space: nowrap;
 }
 
 @media (min-width: 768px) {
@@ -999,8 +999,8 @@ textarea {
 }
 
 .tithes-icon svg {
-    width: 3.5rem;
-    height: 3.5rem;
+    width: 5.5rem;
+    height: 5.5rem;
 }
 
 .tithes-church-name {
