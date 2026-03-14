@@ -4,3 +4,4 @@ Backup_V1/
 Release/
 *.bat
 .env
+*.zip
