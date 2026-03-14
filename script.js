@@ -947,9 +947,24 @@ function loadBibleChapter() {
             div.onclick = () => {
                 document.querySelectorAll('.verse-card').forEach(c => c.classList.remove('active'));
                 div.classList.add('active');
+                setVerse(i);
             };
             verseList.appendChild(div);
         });
+
+        // Check if user requested a specific verse
+        const verseInput = document.getElementById('bible-verse');
+        const targetVerse = parseInt(verseInput.value);
+
+        if (!isNaN(targetVerse) && targetVerse >= 1 && targetVerse <= chapterData.length) {
+            setTimeout(() => {
+                const targetDiv = verseList.children[targetVerse - 1];
+                if (targetDiv) {
+                    targetDiv.click();
+                    targetDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
 
     } catch (err) {
         alert('Erro: ' + err.message);
