@@ -153,25 +153,25 @@ function handleStateUpdate(state) {
                 btnBlackout.querySelector('.action-label').textContent = 'Blackout';
             }
         }
-
-        // Toggle Rest Screen Button Class (ALL buttons)
-        const btnRestAll = document.querySelectorAll('.rest-btn');
-        btnRestAll.forEach(btnRest => {
-            if (isRestScreen) {
-                btnRest.classList.add('active');
-                const label = btnRest.querySelector('.action-label');
-                if (label) label.textContent = 'ATIVO';
-            } else {
-                btnRest.classList.remove('active');
-                const label = btnRest.querySelector('.action-label');
-                if (label) label.textContent = 'Descanso';
-            }
-        });
     } else if (role === 'bible') {
         renderBibleControl();
     } else if (role === 'video') {
         renderVideoControl(state.media);
     }
+
+    // Toggle Rest Screen Button Class (ALL buttons, on all views)
+    const btnRestAll = document.querySelectorAll('.rest-btn');
+    btnRestAll.forEach(btnRest => {
+        if (isRestScreen) {
+            btnRest.classList.add('active');
+            const label = btnRest.querySelector('.action-label');
+            if (label) label.textContent = 'ATIVO';
+        } else {
+            btnRest.classList.remove('active');
+            const label = btnRest.querySelector('.action-label');
+            if (label) label.textContent = 'Descanso';
+        }
+    });
 
     // Handle Media State globally for Display
     if (role === 'display') {
@@ -192,41 +192,43 @@ function handleStateUpdate(state) {
         document.getElementById('media-clock-container').style.display = 'none';
         stopClockDisplay();
 
-        if (state.media && state.media.type !== 'NONE') {
-            if (state.media.type === 'VIDEO') {
-                videoContainer.style.display = 'block';
-                const newSrc = `https://www.youtube.com/embed/${state.media.payload.id}?autoplay=1&controls=0&rel=0`;
-                if (iframe.src !== newSrc) iframe.src = newSrc;
+        if (!isRestScreen) {
+            if (state.media && state.media.type !== 'NONE') {
+                if (state.media.type === 'VIDEO') {
+                    videoContainer.style.display = 'block';
+                    const newSrc = `https://www.youtube.com/embed/${state.media.payload.id}?autoplay=1&controls=0&rel=0`;
+                    if (iframe.src !== newSrc) iframe.src = newSrc;
 
-            } else if (state.media.type === 'IMAGE') {
-                imageContainer.style.display = 'flex';
-                // Stop video audio if switching
-                iframe.src = '';
-                img.src = state.media.payload.url;
-                stopClockDisplay();
+                } else if (state.media.type === 'IMAGE') {
+                    imageContainer.style.display = 'flex';
+                    // Stop video audio if switching
+                    iframe.src = '';
+                    img.src = state.media.payload.url;
+                    stopClockDisplay();
 
-            } else if (state.media.type === 'CLOCK') {
-                // Show clock
-                stopClockDisplay();
-                const clockContainer = document.getElementById('media-clock-container');
-                clockContainer.style.display = 'flex';
-                iframe.src = '';
-                startClockDisplay();
+                } else if (state.media.type === 'CLOCK') {
+                    // Show clock
+                    stopClockDisplay();
+                    const clockContainer = document.getElementById('media-clock-container');
+                    clockContainer.style.display = 'flex';
+                    iframe.src = '';
+                    startClockDisplay();
 
-            } else if (state.media.type === 'TITHES') {
-                tithesContainer.style.display = 'flex';
-                iframe.src = '';
-                stopClockDisplay();
+                } else if (state.media.type === 'TITHES') {
+                    tithesContainer.style.display = 'flex';
+                    iframe.src = '';
+                    stopClockDisplay();
 
-            } else if (state.media.type === 'ANNOUNCEMENT') {
-                announcementContainer.style.display = 'flex';
-                // Stop video audio if switching
+                } else if (state.media.type === 'ANNOUNCEMENT') {
+                    announcementContainer.style.display = 'flex';
+                    // Stop video audio if switching
+                    iframe.src = '';
+                    announcementText.textContent = state.media.payload.text;
+                }
+            } else {
+                // No media active
                 iframe.src = '';
-                announcementText.textContent = state.media.payload.text;
             }
-        } else {
-            // No media active
-            iframe.src = '';
         }
     }
 }
@@ -275,13 +277,35 @@ function renderDisplay(isRestScreen) {
     const restOverlay = document.getElementById('rest-screen-overlay');
 
     if (isRestScreen) {
-        // Show Rest Screen, Hide Lyrics
+        // Show Rest Screen, Hide Lyrics and everything else
         restOverlay.style.display = 'flex';
-        container.style.display = 'none'; // Completely hide to prevent overlap
+        container.style.display = 'none'; // hide lyrics
+        
+        // Hide bubbles
+        const bubblesContainer = document.getElementById('bubbles-container');
+        if (bubblesContainer) bubblesContainer.style.display = 'none';
+
+        // Hide all media
+        document.getElementById('video-container').style.display = 'none';
+        document.getElementById('media-image-container').style.display = 'none';
+        document.getElementById('media-announcement-container').style.display = 'none';
+        document.getElementById('media-tithes-container').style.display = 'none';
+        document.getElementById('media-clock-container').style.display = 'none';
+        
+        // Force stop video playback if running
+        const iframe = document.getElementById('youtube-player');
+        if (iframe && iframe.src) {
+           iframe.src = ''; 
+        }
+        
     } else {
         // Hide Rest Screen, Show Lyrics
         restOverlay.style.display = 'none';
         container.style.display = 'flex'; // Restore inline-block or whatever calls for it
+        
+        // Restore bubbles
+        const bubblesContainer = document.getElementById('bubbles-container');
+        if (bubblesContainer) bubblesContainer.style.display = 'block';
 
         // Render Lyrics Logic
         // Fade out first
