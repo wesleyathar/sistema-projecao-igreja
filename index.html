@@ -59,6 +59,12 @@
         <div id="rest-screen-overlay" style="display:none;">
             <img src="descanso.png" alt="Tela de Descanso" style="width: 100%; height: 100%; object-fit: contain;">
         </div>
+        <!-- CLOCK OVERLAY -->
+        <div id="media-clock-container" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; background:#1a0a02; flex-direction:column; justify-content:center; align-items:center;">
+            <div id="clock-time" style="font-size: 22vw; font-weight: 900; color: #fff; font-family: 'Segoe UI', sans-serif; letter-spacing: 4px; line-height:1;">00:00:00</div>
+            <div id="clock-date" style="font-size: 3.5vw; color: #c8a96e; margin-top: 20px; font-family: 'Segoe UI', sans-serif; letter-spacing: 2px;"></div>
+            <div style="font-size: 1.8vw; color: rgba(200,169,110,0.6); margin-top: 10px; letter-spacing: 4px;">HORÁRIO DE BRASÍLIA</div>
+        </div>
     </div>
 
     <!-- Controller View (Mobile) -->
@@ -221,6 +227,12 @@
             <button class="btn primary" style="width:100%"
                 onclick="showTithes(); this.textContent='✓ Enviado!'; setTimeout(() => this.textContent='Exibir Imagem Pix', 1000)">Exibir
                 Imagem Pix</button>
+        </div>
+
+        <div class="card">
+            <h3>🕐 Relógio</h3>
+            <button class="btn primary" style="width:100%; background: linear-gradient(135deg, #2d1b69, #6c3fc5);"
+                onclick="showClock(); this.textContent='✓ Exibindo!'; setTimeout(() => this.textContent='Exibir Relógio', 1000)">Exibir Relógio</button>
         </div>
 
         <div class="card">

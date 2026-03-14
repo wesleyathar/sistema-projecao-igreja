@@ -13,6 +13,8 @@ if ('serviceWorker' in navigator) {
 // WebSocket Connection
 let ws;
 let reconnectInterval = 2000;
+let clockInterval = null;
+
 // Use the same host and port as the current page
 const hostname = window.location.hostname || 'localhost';
 const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
@@ -185,6 +187,8 @@ function handleStateUpdate(state) {
         videoContainer.style.display = 'none';
         imageContainer.style.display = 'none';
         announcementContainer.style.display = 'none';
+        document.getElementById('media-clock-container').style.display = 'none';
+        stopClockDisplay();
 
         if (state.media && state.media.type !== 'NONE') {
             if (state.media.type === 'VIDEO') {
@@ -197,6 +201,15 @@ function handleStateUpdate(state) {
                 // Stop video audio if switching
                 iframe.src = '';
                 img.src = state.media.payload.url;
+                stopClockDisplay();
+
+            } else if (state.media.type === 'CLOCK') {
+                // Show clock
+                stopClockDisplay();
+                const clockContainer = document.getElementById('media-clock-container');
+                clockContainer.style.display = 'flex';
+                iframe.src = '';
+                startClockDisplay();
 
             } else if (state.media.type === 'ANNOUNCEMENT') {
                 announcementContainer.style.display = 'flex';
@@ -982,6 +995,40 @@ function showTithes() {
                 payload: { url: 'dizimos.png' }
             }
         }));
+    }
+}
+
+function showClock() {
+    console.log('[DEBUG] showClock() chamado');
+    if (checkConnection()) {
+        ws.send(JSON.stringify({
+            type: 'SET_MEDIA',
+            payload: {
+                type: 'CLOCK',
+                payload: {}
+            }
+        }));
+    }
+}
+
+function startClockDisplay() {
+    function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = now.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+        const clockTimeEl = document.getElementById('clock-time');
+        const clockDateEl = document.getElementById('clock-date');
+        if (clockTimeEl) clockTimeEl.textContent = timeStr;
+        if (clockDateEl) clockDateEl.textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+    }
+    updateClock();
+    clockInterval = setInterval(updateClock, 1000);
+}
+
+function stopClockDisplay() {
+    if (clockInterval) {
+        clearInterval(clockInterval);
+        clockInterval = null;
     }
 }
 
