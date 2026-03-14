@@ -1,0 +1,66 @@
+{
+    "name": "Igreja Caminhando para CANAÃ",
+    "short_name": "Louvor CANAÃ",
+    "description": "Sistema de Projeção de Letras e Bíblia",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#1a1a2e",
+    "theme_color": "#6c5ce7",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "productivity",
+        "utilities"
+    ],
+    "shortcuts": [
+        {
+            "name": "TV / Telão",
+            "short_name": "TV",
+            "description": "Abrir modo de exibição para TV/Projetor",
+            "url": "/#display",
+            "icons": [
+                {
+                    "src": "/icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Controle",
+            "short_name": "Controle",
+            "description": "Abrir controle de músicas",
+            "url": "/#control",
+            "icons": [
+                {
+                    "src": "/icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Bíblia",
+            "short_name": "Bíblia",
+            "description": "Abrir leitor de Bíblia",
+            "url": "/#bible",
+            "icons": [
+                {
+                    "src": "/icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ]
+}
