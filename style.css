@@ -870,8 +870,8 @@ textarea {
     position: relative;
     z-index: 2;
     width: 100%;
-    max-width: 1150px;
-    padding: 3rem 2rem;
+    max-width: 1100px;
+    padding: 2rem 1rem;
     text-align: center;
 }
 
@@ -880,12 +880,12 @@ textarea {
 }
 
 .tithes-quote-section {
-    margin-bottom: 4rem;
+    margin-bottom: 2.5rem;
 }
 
 .tithes-h1 {
     font-family: 'Crimson Pro', serif;
-    font-size: 3rem;
+    font-size: 2.2rem;
     font-style: italic;
     line-height: 1.25;
     color: #f3f4f6;
@@ -893,16 +893,16 @@ textarea {
 }
 
 @media (min-width: 768px) {
-    .tithes-h1 { font-size: 4.5rem; }
+    .tithes-h1 { font-size: 3.2rem; }
 }
 
 @media (min-width: 1200px) {
-    .tithes-h1 { font-size: 5rem; line-height: 1.1; }
+    .tithes-h1 { font-size: 3.8rem; line-height: 1.1; }
 }
 
 .tithes-reference {
-    margin-top: 1.5rem;
-    font-size: 1.25rem;
+    margin-top: 1rem;
+    font-size: 1.1rem;
     color: #9ca3af;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -912,18 +912,18 @@ textarea {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(12px);
     border-radius: 1.5rem;
-    padding: 2.5rem;
+    padding: 2rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     display: inline-block;
-    min-width: 320px;
+    min-width: 300px;
     margin: 0 auto;
 }
 
 @media (min-width: 768px) {
     .tithes-card {
-        padding: 4rem;
-        min-width: 800px;
+        padding: 2.5rem 3rem;
+        min-width: 750px;
     }
 }
 
@@ -932,7 +932,7 @@ textarea {
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
-    gap: 2rem;
+    gap: 1.5rem;
 }
 
 @media (min-width: 768px) {
@@ -956,28 +956,28 @@ textarea {
     display: inline-block;
     background: #e67e22;
     color: #ffffff;
-    padding: 0.5rem 1.5rem;
+    padding: 0.4rem 1.2rem;
     border-radius: 9999px;
     font-weight: bold;
-    font-size: 1.125rem;
+    font-size: 1rem;
     letter-spacing: 0.05em;
-    margin-bottom: 1rem;
+    margin-bottom: 0.8rem;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
     text-transform: uppercase;
 }
 
 .tithes-pix-key {
-    font-size: 1.875rem;
+    font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: -0.025em;
     color: #ffffff;
-    margin-top: 0.5rem;
+    margin-top: 0.2rem;
     word-break: break-all;
 }
 
 @media (min-width: 768px) {
     .tithes-pix-key {
-        font-size: 3rem;
+        font-size: 2.2rem;
     }
 }
 
@@ -986,8 +986,8 @@ textarea {
     flex-direction: column;
     align-items: center;
     width: 100%;
-    margin-top: 2rem;
-    padding-top: 2rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
     border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
@@ -999,17 +999,22 @@ textarea {
         padding-top: 0;
         border-top: none;
         border-left: 1px solid rgba(255, 255, 255, 0.2);
-        padding-left: 3rem;
+        padding-left: 2rem;
     }
 }
 
 .tithes-icon {
-    margin-bottom: 1rem;
+    margin-bottom: 0.8rem;
     color: #d4af37;
 }
 
+.tithes-icon svg {
+    width: 3.5rem;
+    height: 3.5rem;
+}
+
 .tithes-church-name {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     font-weight: 300;
     letter-spacing: 0.025em;
     color: #d1d5db;
@@ -1017,14 +1022,14 @@ textarea {
 
 @media (min-width: 768px) {
     .tithes-church-name {
-        font-size: 1.875rem;
+        font-size: 1.5rem;
     }
 }
 
 .tithes-footer {
-    margin-top: 4rem;
+    margin-top: 2.5rem;
     opacity: 0.5;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
