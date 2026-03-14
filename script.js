@@ -178,6 +178,7 @@ function handleStateUpdate(state) {
         const videoContainer = document.getElementById('video-container');
         const imageContainer = document.getElementById('media-image-container');
         const announcementContainer = document.getElementById('media-announcement-container');
+        const tithesContainer = document.getElementById('media-tithes-container');
 
         const iframe = document.getElementById('youtube-player');
         const img = document.getElementById('media-image');
@@ -187,6 +188,7 @@ function handleStateUpdate(state) {
         videoContainer.style.display = 'none';
         imageContainer.style.display = 'none';
         announcementContainer.style.display = 'none';
+        tithesContainer.style.display = 'none';
         document.getElementById('media-clock-container').style.display = 'none';
         stopClockDisplay();
 
@@ -210,6 +212,11 @@ function handleStateUpdate(state) {
                 clockContainer.style.display = 'flex';
                 iframe.src = '';
                 startClockDisplay();
+
+            } else if (state.media.type === 'TITHES') {
+                tithesContainer.style.display = 'flex';
+                iframe.src = '';
+                stopClockDisplay();
 
             } else if (state.media.type === 'ANNOUNCEMENT') {
                 announcementContainer.style.display = 'flex';
@@ -985,14 +992,14 @@ populateBibleBooks();
 
 function showTithes() {
     console.log('[DEBUG] showTithes() chamado');
-    // Send predefined tithes image
+    // Envia o comando para exibir o painel customizado de HTML
     if (checkConnection()) {
-        console.log('[DEBUG] Enviando comando SET_MEDIA para Dízimos');
+        console.log('[DEBUG] Enviando comando SET_MEDIA para Dízimos (HTML personalisado)');
         ws.send(JSON.stringify({
             type: 'SET_MEDIA',
             payload: {
-                type: 'IMAGE',
-                payload: { url: 'dizimos.png' }
+                type: 'TITHES',
+                payload: {}
             }
         }));
     }

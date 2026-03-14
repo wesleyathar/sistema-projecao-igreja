@@ -847,3 +847,184 @@ textarea {
         transform: scale(1);
     }
 }
+
+/* TITHES OVERLAY - Tailwind Extracted */
+.tithes-bg {
+    background: radial-gradient(circle at center, #1a2a44 0%, #0a111f 100%);
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+}
+
+.tithes-bg-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBmiQXn8bly_cAsr8F63ATyRNkAYlVg8ofo8SC89xZgJf8L3eKJr2fq4tcZh5DBurmJJK-BT12a07cL_5slX-gStZVzkxpvwYvfp4OEwlsPWaxWuCh8b224Z8lIblq4vBRYsFxOcHT4p3BmoX8Eo8g0tMifu9igRHIOPqloeOu27lF96f2eoarsD_9BcLAFXEn99osw2U5RmZKbTu-qjTUHfbr6XDIwcRRkhAGgmiGrJ2UVlrRdap1t7u-EXgGC3C-Lu9CkOPACod6S');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.15;
+    filter: blur(8px);
+    z-index: 1;
+}
+
+.tithes-main {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 1150px;
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+.tithes-quote-section {
+    margin-bottom: 4rem;
+}
+
+.tithes-h1 {
+    font-family: 'Crimson Pro', serif;
+    font-size: 3rem;
+    font-style: italic;
+    line-height: 1.25;
+    color: #f3f4f6;
+    filter: drop-shadow(0 10px 8px rgba(0,0,0,0.5));
+}
+
+@media (min-width: 768px) {
+    .tithes-h1 { font-size: 4.5rem; }
+}
+
+@media (min-width: 1200px) {
+    .tithes-h1 { font-size: 5rem; line-height: 1.1; }
+}
+
+.tithes-reference {
+    margin-top: 1.5rem;
+    font-size: 1.25rem;
+    color: #9ca3af;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.tithes-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    display: inline-block;
+    min-width: 320px;
+    margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+    .tithes-card {
+        padding: 4rem;
+        min-width: 800px;
+    }
+}
+
+.tithes-card-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+@media (min-width: 768px) {
+    .tithes-card-inner {
+        flex-direction: row;
+    }
+}
+
+.tithes-pix-col {
+    text-align: left;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .tithes-pix-col {
+        width: auto;
+    }
+}
+
+.tithes-badge {
+    display: inline-block;
+    background: #e67e22;
+    color: #ffffff;
+    padding: 0.5rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: bold;
+    font-size: 1.125rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    text-transform: uppercase;
+}
+
+.tithes-pix-key {
+    font-size: 1.875rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: #ffffff;
+    margin-top: 0.5rem;
+    word-break: break-all;
+}
+
+@media (min-width: 768px) {
+    .tithes-pix-key {
+        font-size: 3rem;
+    }
+}
+
+.tithes-brand-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@media (min-width: 768px) {
+    .tithes-brand-col {
+        align-items: flex-end;
+        width: auto;
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+        border-left: 1px solid rgba(255, 255, 255, 0.2);
+        padding-left: 3rem;
+    }
+}
+
+.tithes-icon {
+    margin-bottom: 1rem;
+    color: #d4af37;
+}
+
+.tithes-church-name {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: 0.025em;
+    color: #d1d5db;
+}
+
+@media (min-width: 768px) {
+    .tithes-church-name {
+        font-size: 1.875rem;
+    }
+}
+
+.tithes-footer {
+    margin-top: 4rem;
+    opacity: 0.5;
+    font-size: 0.875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}

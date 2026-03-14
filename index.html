@@ -12,9 +12,14 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Louvor CANAÃ">
-    <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+
 
     <link rel="stylesheet" href="style.css?v=3.5.6">
 </head>
@@ -64,6 +69,53 @@
             <div id="clock-time" style="font-size: 22vw; font-weight: 900; color: #fff; font-family: 'Segoe UI', sans-serif; letter-spacing: 4px; line-height:1;">00:00:00</div>
             <div id="clock-date" style="font-size: 3.5vw; color: #c8a96e; margin-top: 20px; font-family: 'Segoe UI', sans-serif; letter-spacing: 2px;"></div>
             <div style="font-size: 1.8vw; color: rgba(200,169,110,0.6); margin-top: 10px; letter-spacing: 4px;">HORÁRIO DE BRASÍLIA</div>
+        </div>
+
+        <!-- TITHES OVERLAY (Custom Design) -->
+        <div id="media-tithes-container" class="tithes-bg blur-bg-overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; flex-direction:column; justify-content:center; align-items:center; overflow:hidden;">
+            <!-- Background Overlay from User Code -->
+            <div class="tithes-bg-overlay"></div>
+            
+            <main class="tithes-main animate-fade-in">
+                <!-- Scripture Quote Section -->
+                <section class="tithes-quote-section">
+                    <h1 class="tithes-h1">
+                        “Honra ao Senhor com os teus bens e com as primícias de toda a tua renda.”
+                    </h1>
+                    <p class="tithes-reference">Provérbios 3:9</p>
+                </section>
+
+                <!-- Donation Info Section -->
+                <section class="tithes-card">
+                    <div class="tithes-card-inner">
+                        <!-- Pix Key Label -->
+                        <div class="tithes-pix-col">
+                            <span class="tithes-badge">
+                                Chave Pix E-mail
+                            </span>
+                            <h2 class="tithes-pix-key">
+                                igrejacanaa2021@gmail.com
+                            </h2>
+                        </div>
+                        
+                        <!-- Church Branding -->
+                        <div class="tithes-brand-col">
+                            <div class="tithes-icon">
+                                <svg width="4rem" height="4rem" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2L2 12h3v10h6v-6h2v6h6V12h3L12 2zm0 2.83L19.17 12H17v8h-2v-6H9v6H7v-8H4.83L12 4.83zM11 6h2v2h-2V6zm0 3h2v2h-2V9z"></path>
+                                    <rect height="5" width="2" x="11" y="1"></rect>
+                                    <rect height="2" width="4" x="10" y="2"></rect>
+                                </svg>
+                            </div>
+                            <p class="tithes-church-name">Igreja Cristã Canaã</p>
+                        </div>
+                    </div>
+                </section>
+
+                <footer class="tithes-footer">
+                    Deus abençoe sua generosidade
+                </footer>
+            </main>
         </div>
     </div>
 
