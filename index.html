@@ -20,8 +20,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
     <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
 
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-    <link rel="stylesheet" href="style.css?v=3.5.6">
+    <link rel="stylesheet" href="style.css?v=3.8.0">
 </head>
 
 <body>
@@ -297,68 +299,125 @@
         </div>
     </div>
 
-    <!-- Media Control View -->
-    <div id="video-control-view" style="display: none;">
-        <div class="header">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2>📺 Mídia e Extras</h2>
-                <button class="btn" style="padding: 5px 15px; font-size: 14px;" onclick="showStartScreen()">🏠
-                    Menu</button>
+    <!-- Media Control View (v3.8) -->
+    <div id="video-control-view" style="display: none;" class="media-dashboard">
+        <!-- MainHeader -->
+        <header class="media-header">
+            <div class="header-left">
+                <div class="header-icon-box">
+                    <i data-lucide="tv" class="icon-tv"></i>
+                </div>
+                <div>
+                    <h2>Mídia e Extras</h2>
+                    <div class="connection-status-wrapper">
+                        <span class="pulse-dot">
+                            <span class="pulse-ring"></span>
+                            <span class="pulse-core" id="video-connection-dot"></span>
+                        </span>
+                        <span id="video-connection-status" class="status-text">Desconectado</span>
+                    </div>
+                </div>
             </div>
-            <div class="status-bar">
-                <span id="video-connection-status" class="connection-status">Desconectado</span>
+            <div class="header-right">
+                <button class="btn-menu" onclick="showStartScreen()">
+                    <i data-lucide="menu" class="icon-menu"></i>
+                    Menu
+                </button>
             </div>
-        </div>
+        </header>
 
-        <div class="card">
-            <h3>🙏 Dízimos e Ofertas</h3>
-            <button class="btn primary" style="width:100%"
-                onclick="showTithes(); this.textContent='✓ Enviado!'; setTimeout(() => this.textContent='Exibir Imagem Pix', 1000)">Exibir
-                Imagem Pix</button>
-        </div>
+        <!-- DashboardContent -->
+        <main class="media-main">
+            <div class="media-grid">
+                <!-- Tithes & Offerings -->
+                <section class="media-card">
+                    <div class="card-header">
+                        <i data-lucide="hand-coins" class="icon-tithes"></i>
+                        <h3>Dízimos e Ofertas</h3>
+                    </div>
+                    <button class="btn-action bg-sky" onclick="showTithes(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Enviado!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'qr-code\' class=\'icon-btn\'></i>Exibir Imagem Pix'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                        <i data-lucide="qr-code" class="icon-btn"></i>
+                        Exibir Imagem Pix
+                    </button>
+                </section>
 
-        <div class="card">
-            <h3>🕐 Relógio</h3>
-            <button class="btn primary" style="width:100%; background: linear-gradient(135deg, #2d1b69, #6c3fc5);"
-                onclick="showClock(); this.textContent='✓ Exibindo!'; setTimeout(() => this.textContent='Exibir Relógio', 1000)">Exibir Relógio</button>
-        </div>
+                <!-- Clock Section -->
+                <section class="media-card">
+                    <div class="card-header">
+                        <i data-lucide="clock" class="icon-clock"></i>
+                        <h3>Relógio</h3>
+                    </div>
+                    <button class="btn-action bg-purple" onclick="showClock(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Exibindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'eye\' class=\'icon-btn\'></i>Exibir Relógio'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                        <i data-lucide="eye" class="icon-btn"></i>
+                        Exibir Relógio
+                    </button>
+                </section>
 
-        <div class="card">
-            <h3>📢 Avisos</h3>
-            <textarea id="announcement-input" placeholder="Digite o aviso aqui..."
-                style="height: 100px; font-size: 18px;"></textarea>
-            <button class="btn primary" style="width:100%"
-                onclick="showAnnouncement(); this.textContent='✓ Enviado!'; setTimeout(() => this.textContent='Exibir Aviso', 1000)">Exibir
-                Aviso</button>
-        </div>
+                <!-- Opening Section -->
+                <section class="media-card">
+                    <div class="card-header">
+                        <i data-lucide="sparkles" class="icon-opening"></i>
+                        <h3>Abertura</h3>
+                    </div>
+                    <button class="btn-action bg-pink" onclick="playPresetVideo(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Reproduzindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'rocket\' class=\'icon-btn\'></i>Abertura Padrão'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                        <i data-lucide="rocket" class="icon-btn"></i>
+                        Abertura Padrão
+                    </button>
+                </section>
 
-        <div class="card">
-            <h3>🎬 Vídeo (YouTube)</h3>
-            <label>Link do YouTube:</label>
-            <input type="text" id="video-url-input" placeholder="Cole o link aqui...">
+                <!-- Announcements Section -->
+                <section class="media-card span-2">
+                    <div class="card-header">
+                        <i data-lucide="megaphone" class="icon-announcements"></i>
+                        <h3>Avisos</h3>
+                    </div>
+                    <textarea id="announcement-input" class="media-textarea" placeholder="Digite o aviso aqui..." rows="4"></textarea>
+                    <button class="btn-action bg-sky" onclick="showAnnouncement(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Enviado!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'send\' class=\'icon-btn\'></i>Exibir Aviso'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                        <i data-lucide="send" class="icon-btn hover-slide"></i>
+                        Exibir Aviso
+                    </button>
+                </section>
 
-            <div style="display:flex; gap:10px; margin-bottom: 20px;">
-                <button class="btn primary" style="flex:1"
-                    onclick="playCustomVideo(); this.textContent='✓ Reproduzindo!'; setTimeout(() => this.textContent='▶ Reproduzir', 1500)">▶
-                    Reproduzir</button>
+                <!-- YouTube Section -->
+                <section class="media-card">
+                    <div class="card-header">
+                        <i data-lucide="youtube" class="icon-youtube"></i>
+                        <h3>Vídeo (YouTube)</h3>
+                    </div>
+                    <div class="input-group">
+                        <label for="video-url-input">Link do YouTube:</label>
+                        <input type="text" id="video-url-input" class="media-input" placeholder="Cole o link aqui...">
+                    </div>
+                    <button class="btn-action bg-sky mt-auto" onclick="playCustomVideo(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Reproduzindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'play\' class=\'icon-btn\'></i>Reproduzir'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                        <i data-lucide="play" class="icon-btn fill-current"></i>
+                        Reproduzir
+                    </button>
+                </section>
+
+                <!-- General Control Section -->
+                <section class="media-card span-full mt-4">
+                    <div class="card-header mb-6">
+                        <i data-lucide="settings-2" class="icon-settings text-slate-400"></i>
+                        <h2 class="text-slate-200">Controle Geral</h2>
+                    </div>
+                    <div class="controls-grid">
+                        <button class="btn-danger-huge" onclick="stopMedia()">
+                            <i data-lucide="octagon-pause" class="icon-huge"></i>
+                            PARAR TUDO (Voltar ao Louvor)
+                        </button>
+                        <button class="btn-standby rest-btn" onclick="toggleRestScreen()">
+                            <i data-lucide="moon" class="icon-standby"></i>
+                            <span class="action-label">Descanso / Standby</span>
+                        </button>
+                    </div>
+                </section>
             </div>
-            <button class="btn" style="width:100%; background: #e056fd; color: white;"
-                onclick="playPresetVideo(); this.textContent='✓ Reproduzindo!'; setTimeout(() => this.textContent='🚀 Abertura Padrão', 1500)">
-                🚀 Abertura Padrão
-            </button>
-        </div>
+        </main>
 
-        <div class="card" style="background: rgba(139, 33, 33, 0.1); border: 1px solid rgba(255, 71, 87, 0.3);">
-            <h3>🛑 Controle Geral</h3>
-            <button class="btn danger" style="width:100%; height: 60px; font-size: 18px; margin-bottom: 15px;"
-                onclick="stopMedia()">PARAR TUDO (Voltar ao Louvor)</button>
-
-            <!-- Rest Screen Button -->
-            <button class="action-btn rest-btn" style="width: 100%; padding: 15px;" onclick="toggleRestScreen()">
-                <span class="action-icon">☕</span>
-                <span class="action-label">Descanso</span>
-            </button>
-        </div>
+        <!-- Footer -->
+        <footer class="media-footer">
+            <p>© 2024 Projeção Eclésia - Painel de Controle de Mídia</p>
+        </footer>
     </div>
 
 
@@ -401,10 +460,10 @@
     </div>
     <!-- End of control-view wrapper (just in case) -->
 
-    <script src="script.js?v=3.5.6"></script>
-    </script>
-    </script>
-    </script>
+    <script src="script.js?v=3.8.0"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
     </script>
 </body>
 
