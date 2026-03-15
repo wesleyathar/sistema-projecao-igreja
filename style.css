@@ -1099,7 +1099,8 @@ textarea {
 .media-dashboard {
     background-color: #0f172a; /* bg-slate-900 */
     color: #f1f5f9; /* text-slate-100 */
-    min-height: 100vh;
+    height: 100vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     width: 100%;
