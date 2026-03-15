@@ -873,6 +873,12 @@ textarea {
     margin-bottom: 2.5rem;
 }
 
+@media (min-width: 1200px) {
+    .tithes-quote-section {
+        margin-bottom: 4rem;
+    }
+}
+
 .tithes-h1 {
     font-family: 'Crimson Pro', serif;
     font-size: 2.2rem;
@@ -887,7 +893,7 @@ textarea {
 }
 
 @media (min-width: 1200px) {
-    .tithes-h1 { font-size: 5.5rem; line-height: 1.1; }
+    .tithes-h1 { font-size: 4.8rem; line-height: 1.1; }
 }
 
 .tithes-reference {
@@ -919,7 +925,7 @@ textarea {
 
 @media (min-width: 1200px) {
     .tithes-card {
-        padding: 5rem 6rem;
+        padding: 3rem 4rem;
         width: 95%; /* Toma a tela toda */
         border-radius: 3rem;
     }
@@ -1004,8 +1010,10 @@ textarea {
 
 @media (min-width: 1200px) {
     .tithes-pix-key {
-        font-size: 7.5rem; /* GIGANTE */
+        font-size: 5.8rem; /* Grande, mas cabendo */
         text-align: center;
+        white-space: normal; /* Permite quebrar linha se for absurdamente necessário, mas 5.8rem deve caber */
+        word-break: break-all;
     }
 }
 
