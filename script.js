@@ -223,7 +223,22 @@ function handleStateUpdate(state) {
                     announcementContainer.style.display = 'flex';
                     // Stop video audio if switching
                     iframe.src = '';
-                    announcementText.textContent = state.media.payload.text;
+                    
+                    const imgAnnounce = document.getElementById('announcement-display-image');
+                    const textAnnounce = document.getElementById('announcement-text');
+                    
+                    if (state.media.payload.image) {
+                        imgAnnounce.src = state.media.payload.image;
+                        imgAnnounce.style.display = 'block';
+                    } else {
+                        imgAnnounce.src = '';
+                        imgAnnounce.style.display = 'none';
+                    }
+
+                    // Render Rich Text
+                    if (textAnnounce) {
+                        textAnnounce.innerHTML = state.media.payload.html || '';
+                    }
                 }
             } else {
                 // No media active
@@ -1078,23 +1093,98 @@ function stopClockDisplay() {
     }
 }
 
+let announcementImageBase64 = null;
+
+function formatText(cmd) {
+    document.execCommand(cmd, false, null);
+    document.getElementById('announcement-input').focus();
+}
+
+function formatTextColor(color) {
+    document.execCommand('foreColor', false, color);
+    document.getElementById('announcement-input').focus();
+}
+
+function changeFontSize(direction) {
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        
+        // Se seleção vazia, melhor não fazer nada
+        if (range.collapsed) return;
+
+        const span = document.createElement('span');
+        
+        // Pega tamanho atual ou default
+        let currentSize = 3; // Fonte padrão visualmente grande na TV
+        const parent = range.commonAncestorContainer.parentElement;
+        if (parent && parent.getAttribute('style') && parent.getAttribute('style').includes('font-size')) {
+            const match = parent.getAttribute('style').match(/font-size:\s*([\d.]+)(vh|vw|rem|px)/);
+            if (match) currentSize = parseFloat(match[1]);
+        }
+
+        const newSize = currentSize + (direction * 0.5);
+        span.style.fontSize = `${newSize}vh`; // Usando vh para manter proporção da TV
+        range.surroundContents(span);
+        document.getElementById('announcement-input').focus();
+    }
+}
+
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecione uma imagem.');
+        return;
+    }
+
+    // Limit size to ~2MB just to avoid socket bottlenecks
+    if (file.size > 3 * 1024 * 1024) {
+        alert('A imagem é muito grande. Máximo 3MB.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        announcementImageBase64 = e.target.result;
+        const preview = document.getElementById('announcement-image-preview');
+        preview.src = announcementImageBase64;
+        document.getElementById('image-preview-container').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeImagePreview() {
+    announcementImageBase64 = null;
+    document.getElementById('announcement-image-preview').src = '';
+    document.getElementById('image-preview-container').style.display = 'none';
+    document.getElementById('image-upload-input').value = '';
+}
+
 function showAnnouncement() {
     console.log('[DEBUG] showAnnouncement() chamado');
-    const text = document.getElementById('announcement-input').value;
-    console.log('[DEBUG] Texto do aviso:', text);
+    const editor = document.getElementById('announcement-input');
+    const htmlContent = editor.innerHTML;
+    const textContent = editor.textContent.trim();
+    
+    console.log('[DEBUG] HTML do aviso:', htmlContent);
 
-    if (!text) {
+    if (!textContent && !announcementImageBase64) {
         console.warn('[DEBUG] Aviso vazio, exibindo alerta');
-        return alert('Digite um aviso!');
+        return alert('Digite um aviso ou insira uma imagem!');
     }
 
     if (checkConnection()) {
-        console.log('[DEBUG] Enviando comando SET_MEDIA para Aviso');
+        console.log('[DEBUG] Enviando comando SET_MEDIA para Aviso (HTML + Image)');
         ws.send(JSON.stringify({
             type: 'SET_MEDIA',
             payload: {
                 type: 'ANNOUNCEMENT',
-                payload: { text: text }
+                payload: { 
+                    html: htmlContent,
+                    image: announcementImageBase64
+                }
             }
         }));
     }
