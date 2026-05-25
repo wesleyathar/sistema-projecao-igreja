@@ -76,6 +76,17 @@ const server = http.createServer((req, res) => {
     const urlParts = new URL(req.url, `http://${req.headers.host}`);
     const cleanUrl = urlParts.pathname;
 
+    // --- HEALTH / PING ENDPOINT (Keep-Alive para Render) ---
+    if (cleanUrl === '/health' || cleanUrl === '/ping') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            status: 'ok',
+            uptime: Math.floor(process.uptime()),
+            timestamp: new Date().toISOString()
+        }));
+        return;
+    }
+
     // --- SPECIAL ROUTE FOR LYRICS.JSON ---
     // This ensures we always serve the EXTERNAL lyrics file, not the one inside the package (if any)
     if (cleanUrl === '/lyrics.json') {
@@ -215,7 +226,33 @@ const server = http.createServer((req, res) => {
 server.listen(HTTP_PORT, () => {
     console.log(`HTTP Server running at http://${ip.address()}:${HTTP_PORT}/`);
     console.log(`Display URL: http://${ip.address()}:${HTTP_PORT}/#display`);
-    console.log(`Controller URL: http://${ip.address()}:${HTTP_PORT}/#control`);
+    console.log(`Controller URL: http://${ip.address()}:${HTTP_PORT}/#panel`);
+
+    // =====================================================
+    // KEEP-ALIVE: Evita que o Render durma por inatividade
+    // Pinga a si mesmo a cada 10 minutos
+    // =====================================================
+    const RENDER_URL = process.env.RENDER_EXTERNAL_URL ||
+                       (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null);
+
+    if (RENDER_URL) {
+        const https = require('https');
+        const PING_INTERVAL_MS = 10 * 60 * 1000; // 10 minutos
+
+        console.log(`[KEEP-ALIVE] Self-ping ativo → ${RENDER_URL}/health a cada 10 min`);
+
+        setInterval(() => {
+            https.get(`${RENDER_URL}/health`, (res) => {
+                console.log(`[KEEP-ALIVE] Ping OK — status: ${res.statusCode} — ${new Date().toLocaleTimeString('pt-BR')}`);
+            }).on('error', (err) => {
+                console.warn(`[KEEP-ALIVE] Ping falhou: ${err.message}`);
+            });
+        }, PING_INTERVAL_MS);
+
+    } else {
+        console.log('[KEEP-ALIVE] Sem URL de produção detectada (RENDER_EXTERNAL_URL / RAILWAY_PUBLIC_DOMAIN) — keep-alive desativado.');
+    }
+
 }).on('error', (e) => {
     if (e.code === 'EADDRINUSE') {
         console.error(`\n❌ ERRO FATAL: A porta ${HTTP_PORT} está em uso!`);
