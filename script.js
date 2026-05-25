@@ -1358,17 +1358,19 @@ function displayVagalumeResults(results) {
             <div class="online-song-title">${item.title}</div>
             <div class="online-artist-name">${item.artist.name}</div>
         `;
-        div.onclick = () => selectVagalumeSong(item.artist.name, item.title);
+        div.onclick = () => selectVagalumeSong(item.artist.name, item.title, item.url);
         list.appendChild(div);
     });
 }
 
-function selectVagalumeSong(artist, title) {
+function selectVagalumeSong(artist, title, url) {
     const loading = document.getElementById('vagalume-loading');
     loading.style.display = 'block';
     loading.textContent = '⌛ Baixando letra...';
 
-    fetch(`/api/lyrics/vagalume?art=${encodeURIComponent(artist)}&mus=${encodeURIComponent(title)}`)
+    const fetchUrl = `/api/lyrics/vagalume?art=${encodeURIComponent(artist)}&mus=${encodeURIComponent(title)}&url=${encodeURIComponent(url || '')}`;
+
+    fetch(fetchUrl)
         .then(res => res.json())
         .then(data => {
             loading.style.display = 'none';
