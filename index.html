@@ -18,12 +18,12 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
-    <link rel="stylesheet" href="style.css?v=3.8.0">
+    <link rel="stylesheet" href="style.css?v=4.0.0">
 </head>
 
 <body>
@@ -32,12 +32,10 @@
     <div id="start-screen">
         <div
             style="position:fixed; top:10px; right:120px; color:black; background:#2ed573; padding:5px 10px; font-weight:bold; border-radius:5px; z-index:9999;">
-            VER: 3.5 FINAL</div>
+            VER: 4.0 UNIFIED</div>
         <h1>Igreja Evangélica Caminhando para CANAÃ</h1>
         <div class="role-btn" onclick="selectRole('display')">🖥️ TV / Telão</div>
-        <div class="role-btn" onclick="selectRole('control')">📱 Controle</div>
-        <div class="role-btn" onclick="selectRole('bible')">📖 Bíblia</div>
-        <div class="role-btn" onclick="selectRole('video')">🎬 Mídia / Extras</div>
+        <div class="role-btn" onclick="selectRole('panel', 'tab-louvor')">📱 Painel de Controle</div>
     </div>
 
     <!-- Display View (TV) -->
@@ -146,324 +144,351 @@
         </div>
     </div>
 
-    <!-- Controller View (Mobile) -->
-    <div id="control-view">
-        <!-- Header -->
-        <div class="control-header">
-            <div class="header-top">
-                <div>
-                    <h2>Controle de Louvor</h2>
-                    <div class="connection-indicator">
-                        <span id="connection-dot" class="dot"></span>
-                        <span id="connection-status">Desconectado</span>
-                        <span class="terminal-info">• Terminal 01</span>
+    <!-- UNIFIED PANEL VIEW (v4.0) -->
+    <div id="unified-panel" style="display: none;" class="shell">
+        
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="app-logo">
+                    <div class="logo-icon">✝️</div>
+                    <div class="logo-text-wrapper">
+                        <div class="logo-text">CANAÃ</div>
+                        <div class="logo-sub">Projeção</div>
                     </div>
                 </div>
-                <button class="icon-btn" onclick="showStartScreen()">🏠</button>
-            </div>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="search-container">
-            <div class="search-wrapper">
-                <input type="text" id="song-search" placeholder="🔍 Buscar música ou hino..." oninput="filterSongs()"
-                    onfocus="showResults()">
-                <div id="search-results" class="search-results-list"></div>
-            </div>
-        </div>
-
-        <!-- Load Song Button -->
-        <div class="main-actions">
-            <button class="btn-load-song" onclick="loadSelectedSong()">
-                ☁️ Carregar Música
-            </button>
-            <button class="btn-add-song" onclick="openAddModal()">+</button>
-        </div>
-
-        <!-- Song Select (Hidden Select) -->
-        <select id="song-select" style="display:none;">
-            <option value="">Carregando músicas...</option>
-        </select>
-
-        <!-- Navigation Controls -->
-        <div class="nav-controls">
-            <button class="nav-btn" onclick="prevVerse()">
-                <span class="nav-icon">⬆</span>
-                <span class="nav-label">Anterior</span>
-            </button>
-            <button class="nav-btn" onclick="nextVerse()">
-                <span class="nav-icon">⬇</span>
-                <span class="nav-label">Próxima</span>
-            </button>
-        </div>
-
-        <!-- Action Controls (Toolbar) -->
-        <div class="actions-toolbar">
-            <button class="action-btn blackout-btn" onclick="toggleBlackout()">
-                <span class="action-icon">🚫</span>
-                <span class="action-label">Blackout</span>
-            </button>
-            <button class="action-btn rest-btn" onclick="toggleRestScreen()">
-                <span class="action-icon">☕</span>
-                <span class="action-label">Descanso</span>
-            </button>
-            <button class="action-btn fullscreen-btn" onclick="requestFullScreenDisplay()">
-                <span class="action-icon">⛶</span>
-                <span class="action-label">Tela Cheia</span>
-            </button>
-        </div>
-
-        <!-- Verses Section (Now inside control-view) -->
-        <div class="verses-section">
-            <div class="verses-header">
-                <span class="verses-title">ESTROFES</span>
-                <span id="active-song-title" class="current-song-indicator">Nenhuma música selecionada</span>
-            </div>
-            <div id="verse-list" class="verse-list-modern">
-                <!-- Verses injected by JS -->
-            </div>
-        </div>
-
-        <!-- QR Code Section (Now inside control-view) -->
-        <div class="qr-section">
-            <div class="qr-container">
-                <img id="qr-code" alt="QR Code" style="width: 120px; height: 120px; display:none;">
-            </div>
-            <p class="qr-label">Escaneie para conectar outro terminal</p>
-        </div>
-    </div>
-    <!-- End of control-view -->
-
-    <!-- Bible View (Dedicated) -->
-    <div id="bible-view" style="display: none;">
-        <div class="header">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2>📖 Bíblia Sagrada</h2>
-                <button class="btn" style="padding: 5px 15px; font-size: 14px;" onclick="showStartScreen()">🏠
-                    Menu</button>
-            </div>
-            <div class="status-bar">
-                <span id="bible-connection-status" class="connection-status">Desconectado</span>
-                <span id="active-bible-ref">Nenhum capítulo</span>
-            </div>
-        </div>
-
-        <div class="card">
-            <h3>Buscar</h3>
-            <div style="display:flex; gap:5px; margin-bottom:10px;">
-                <select id="bible-book" style="flex:2">
-                    <!-- Populated by JS -->
-                </select>
-                <input type="number" id="bible-chapter" placeholder="Cap." style="flex:1" min="1" value="1">
-                <input type="number" id="bible-verse" placeholder="Vers." style="flex:1" min="1">
-            </div>
-            <button class="btn primary" style="width:100%" onclick="loadBibleChapter()">Carregar</button>
-        </div>
-
-        <!-- Bible Navigation -->
-        <div class="nav-controls" style="margin-bottom: 20px;">
-            <button class="nav-btn" onclick="prevVerse()">
-                <span class="nav-icon">⬆</span>
-                <span class="nav-label">Anterior</span>
-            </button>
-            <button class="nav-btn" onclick="nextVerse()">
-                <span class="nav-icon">⬇</span>
-                <span class="nav-label">Próximo</span>
-            </button>
-        </div>
-
-        <!-- Rest Screen Button -->
-        <div style="margin-bottom: 20px;">
-            <button class="action-btn rest-btn" style="width: 100%; padding: 15px;" onclick="toggleRestScreen()">
-                <span class="action-icon">☕</span>
-                <span class="action-label">Descanso</span>
-            </button>
-        </div>
-
-        <div class="card">
-            <h3>📜 Versículos</h3>
-            <div id="bible-verse-list" class="verse-list" style="max-height: 400px; overflow-y: auto;">
-                <!-- Verse previews injected by JS -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Media Control View (v3.8) -->
-    <div id="video-control-view" style="display: none;" class="media-dashboard">
-        <!-- MainHeader -->
-        <header class="media-header">
-            <div class="header-left">
-                <div class="header-icon-box">
-                    <i data-lucide="tv" class="icon-tv"></i>
-                </div>
-                <div>
-                    <h2>Mídia e Extras</h2>
-                    <div class="connection-status-wrapper">
-                        <span class="pulse-dot">
-                            <span class="pulse-ring"></span>
-                            <span class="pulse-core" id="video-connection-dot"></span>
-                        </span>
-                        <span id="video-connection-status" class="status-text">Desconectado</span>
-                    </div>
+                <div class="conn-badge">
+                    <span class="dot-g" id="unified-connection-dot"></span>
+                    <span id="unified-connection-status">Desconectado</span>
                 </div>
             </div>
-            <div class="header-right">
-                <button class="btn-menu" onclick="showStartScreen()">
-                    <i data-lucide="menu" class="icon-menu"></i>
-                    Menu
-                </button>
+
+            <div class="nav-section">
+                <div class="nav-section-label">Controle</div>
+
+                <div class="nav-item active" id="btn-tab-louvor" onclick="switchPanelTab('tab-louvor')">
+                    <span class="nav-icon">🎵</span>
+                    <span class="nav-label">Louvor</span>
+                    <span class="nav-badge" id="badge-louvor" style="display: none;">AO VIVO</span>
+                </div>
+
+                <div class="nav-item" id="btn-tab-biblia" onclick="switchPanelTab('tab-biblia')">
+                    <span class="nav-icon">📖</span>
+                    <span class="nav-label">Bíblia</span>
+                    <span class="nav-badge" id="badge-biblia" style="display: none;">AO VIVO</span>
+                </div>
+
+                <div class="nav-item" id="btn-tab-midia" onclick="switchPanelTab('tab-midia')">
+                    <span class="nav-icon">🎬</span>
+                    <span class="nav-label">Mídia</span>
+                    <span class="nav-badge" id="badge-midia" style="display: none;">AO VIVO</span>
+                </div>
             </div>
-        </header>
 
-        <!-- DashboardContent -->
-        <main class="media-main">
-            <div class="media-grid">
-                <!-- Tithes & Offerings -->
-                <section class="media-card">
-                    <div class="card-header">
-                        <i data-lucide="hand-coins" class="icon-tithes"></i>
-                        <h3>Dízimos e Ofertas</h3>
-                    </div>
-                    <button class="btn-action bg-sky" onclick="showTithes(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Enviado!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'qr-code\' class=\'icon-btn\'></i>Exibir Imagem Pix'; lucide.createIcons(); }, 1500); lucide.createIcons();">
-                        <i data-lucide="qr-code" class="icon-btn"></i>
-                        Exibir Imagem Pix
-                    </button>
-                </section>
+            <div class="nav-section">
+                <div class="nav-section-label">Sistema</div>
+                <div class="nav-item" id="btn-tab-qr" onclick="switchPanelTab('tab-qr')">
+                    <span class="nav-icon">📱</span>
+                    <span class="nav-label">QR / Terminais</span>
+                </div>
+            </div>
 
-                <!-- Clock Section -->
-                <section class="media-card">
-                    <div class="card-header">
-                        <i data-lucide="clock" class="icon-clock"></i>
-                        <h3>Relógio</h3>
-                    </div>
-                    <button class="btn-action bg-purple" onclick="showClock(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Exibindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'eye\' class=\'icon-btn\'></i>Exibir Relógio'; lucide.createIcons(); }, 1500); lucide.createIcons();">
-                        <i data-lucide="eye" class="icon-btn"></i>
-                        Exibir Relógio
-                    </button>
-                </section>
+            <div class="sidebar-footer">
+                <div class="nav-item" onclick="showStartScreen()" style="margin-bottom: 0;">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-label">Sair / Menu</span>
+                </div>
+            </div>
+        </div>
 
-                <!-- Opening Section -->
-                <section class="media-card">
-                    <div class="card-header">
-                        <i data-lucide="sparkles" class="icon-opening"></i>
-                        <h3>Abertura</h3>
-                    </div>
-                    <button class="btn-action bg-pink" onclick="playPresetVideo(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Reproduzindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'rocket\' class=\'icon-btn\'></i>Abertura Padrão'; lucide.createIcons(); }, 1500); lucide.createIcons();">
-                        <i data-lucide="rocket" class="icon-btn"></i>
-                        Abertura Padrão
-                    </button>
-                </section>
+        <!-- MAIN CONTENT AREA -->
+        <div class="main-area">
 
-                <!-- Announcements Section -->
-                <section class="media-card span-2">
-                    <div class="card-header">
-                        <i data-lucide="megaphone" class="icon-announcements"></i>
-                        <h3>Avisos</h3>
+            <!-- LOUVOR TAB -->
+            <div id="tab-louvor" class="panel-tab active">
+                <!-- Top Bar -->
+                <div class="top-bar">
+                    <div>
+                        <div class="page-heading">🎵 Controle de Louvor</div>
+                        <div class="page-sub" id="active-song-title">Nenhuma música selecionada</div>
                     </div>
+                    <div class="top-actions">
+                        <button class="btn-top danger blackout-btn" onclick="toggleBlackout()">🚫 <span class="action-label">Blackout</span></button>
+                        <button class="btn-top success rest-btn" onclick="toggleRestScreen()">☕ <span class="action-label">Descanso</span></button>
+                        <button class="btn-top primary" onclick="loadSelectedSong()">☁️ Carregar Música</button>
+                    </div>
+                </div>
+
+                <!-- Content Columns -->
+                <div class="content-columns">
                     
-                    <div class="editor-container">
-                        <div class="editor-toolbar">
-                            <button class="format-btn" onclick="formatText('bold')" title="Negrito"><i data-lucide="bold"></i></button>
-                            <button class="format-btn" onclick="formatText('italic')" title="Itálico"><i data-lucide="italic"></i></button>
-                            <button class="format-btn" onclick="formatText('underline')" title="Sublinhado"><i data-lucide="underline"></i></button>
-                            <div class="toolbar-divider"></div>
-                            <label class="color-picker-label" title="Cor do Texto">
-                                <input type="color" id="textColorPicker" class="color-picker" onchange="formatTextColor(this.value)">
-                            </label>
-                            <div class="toolbar-divider"></div>
-                            <button class="format-btn text-size-btn" onclick="changeFontSize(1)" title="Aumentar Fonte">A+</button>
-                            <button class="format-btn text-size-btn" onclick="changeFontSize(-1)" title="Diminuir Fonte">A-</button>
-                            <div class="toolbar-divider"></div>
-                            <button class="format-btn" onclick="document.getElementById('image-upload-input').click()" title="Anexar Imagem"><i data-lucide="image"></i></button>
-                            <input type="file" id="image-upload-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-                        </div>
+                    <!-- Left Column -->
+                    <div class="col-left">
                         
-                        <div id="announcement-input" class="media-textarea content-editable" contenteditable="true" data-placeholder="Digite o aviso aqui..."></div>
-                        
-                        <div id="image-preview-container" class="image-preview-wrapper" style="display: none;">
-                            <img id="announcement-image-preview" src="" alt="Preview">
-                            <button class="remove-image-btn" onclick="removeImagePreview()" title="Remover Imagem">
-                                <i data-lucide="x"></i>
-                            </button>
+                        <!-- Search Card -->
+                        <div class="card">
+                            <div class="card-title-flex">
+                                <span>🔍 Buscar Música</span>
+                                <button class="btn-add-song-mini" onclick="openAddModal()">+</button>
+                            </div>
+                            <div class="search-wrapper">
+                                <input type="text" id="song-search" class="search-inp" placeholder="Digite o nome da música..." oninput="filterSongs()" onfocus="showResults()">
+                                <div id="search-results" class="search-results-list"></div>
+                            </div>
+                            <select id="song-select" style="display:none;"><option value="">Carregando...</option></select>
                         </div>
+
+                        <!-- Nav Card -->
+                        <div class="card">
+                            <div class="card-title">⬆⬇ Navegação</div>
+                            <div class="nav-grid">
+                                <button class="nav-btn-large" onclick="prevVerse()"><span class="icon">⬆</span> Anterior</button>
+                                <button class="nav-btn-large" onclick="nextVerse()"><span class="icon">⬇</span> Próxima</button>
+                            </div>
+                        </div>
+
                     </div>
 
-                    <button class="btn-action bg-sky" onclick="showAnnouncement(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Enviado!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'send\' class=\'icon-btn hover-slide\'></i>Exibir Aviso'; lucide.createIcons(); }, 1500); lucide.createIcons();">
-                        <i data-lucide="send" class="icon-btn hover-slide"></i>
-                        Exibir Aviso
-                    </button>
-                </section>
+                    <!-- Right Column -->
+                    <div class="col-right">
+                        
+                        <!-- Verse List -->
+                        <div class="card flex-card">
+                            <div class="card-title">📜 Estrofes</div>
+                            <div id="verse-list" class="verse-list-modern flex-scroll">
+                                <!-- Verses injected by JS -->
+                            </div>
+                        </div>
 
-                <!-- YouTube Section -->
-                <section class="media-card">
-                    <div class="card-header">
-                        <i data-lucide="youtube" class="icon-youtube"></i>
-                        <h3>Vídeo (YouTube)</h3>
                     </div>
-                    <div class="input-group">
-                        <label for="video-url-input">Link do YouTube:</label>
-                        <input type="text" id="video-url-input" class="media-input" placeholder="Cole o link aqui...">
-                    </div>
-                    <button class="btn-action bg-sky mt-auto" onclick="playCustomVideo(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Reproduzindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'play\' class=\'icon-btn\'></i>Reproduzir'; lucide.createIcons(); }, 1500); lucide.createIcons();">
-                        <i data-lucide="play" class="icon-btn fill-current"></i>
-                        Reproduzir
-                    </button>
-                </section>
-
-                <!-- General Control Section -->
-                <section class="media-card span-full mt-4">
-                    <div class="card-header mb-6">
-                        <i data-lucide="settings-2" class="icon-settings text-slate-400"></i>
-                        <h2 class="text-slate-200">Controle Geral</h2>
-                    </div>
-                    <div class="controls-grid">
-                        <button class="btn-danger-huge" onclick="stopMedia()">
-                            <i data-lucide="octagon-pause" class="icon-huge"></i>
-                            PARAR TUDO (Voltar ao Louvor)
-                        </button>
-                        <button class="btn-standby rest-btn" onclick="toggleRestScreen()">
-                            <i data-lucide="moon" class="icon-standby"></i>
-                            <span class="action-label">Descanso / Standby</span>
-                        </button>
-                    </div>
-                </section>
+                </div>
             </div>
-        </main>
 
-        <!-- Footer -->
-        <footer class="media-footer">
-            <p>© 2024 Projeção Eclésia - Painel de Controle de Mídia</p>
-        </footer>
+
+            <!-- BÍBLIA TAB -->
+            <div id="tab-biblia" class="panel-tab" style="display: none;">
+                <!-- Top Bar -->
+                <div class="top-bar">
+                    <div>
+                        <div class="page-heading">📖 Bíblia Sagrada</div>
+                        <div class="page-sub" id="active-bible-ref">Nenhum capítulo</div>
+                    </div>
+                    <div class="top-actions">
+                        <button class="btn-top danger blackout-btn" onclick="toggleBlackout()">🚫 <span class="action-label">Blackout</span></button>
+                        <button class="btn-top success rest-btn" onclick="toggleRestScreen()">☕ <span class="action-label">Descanso</span></button>
+                        <button class="btn-top primary" onclick="loadBibleChapter()">☁️ Carregar Capítulo</button>
+                    </div>
+                </div>
+
+                <!-- Content Columns -->
+                <div class="content-columns">
+                    
+                    <!-- Left Column -->
+                    <div class="col-left">
+                        
+                        <!-- Search Card -->
+                        <div class="card">
+                            <div class="card-title">🔍 Buscar Passagem</div>
+                            <select id="bible-book" class="search-inp" style="margin-bottom: 10px;">
+                                <!-- Populated by JS -->
+                            </select>
+                            <div style="display:flex; gap:10px;">
+                                <input type="number" id="bible-chapter" class="search-inp" placeholder="Cap." min="1" value="1" style="flex:1;">
+                                <input type="number" id="bible-verse" class="search-inp" placeholder="Vers." min="1" style="flex:1;">
+                            </div>
+                        </div>
+
+                        <!-- Nav Card -->
+                        <div class="card">
+                            <div class="card-title">⬆⬇ Navegação</div>
+                            <div class="nav-grid">
+                                <button class="nav-btn-large" onclick="prevVerse()"><span class="icon">⬆</span> Anterior</button>
+                                <button class="nav-btn-large" onclick="nextVerse()"><span class="icon">⬇</span> Próxima</button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-right">
+                        
+                        <!-- Verse List -->
+                        <div class="card flex-card">
+                            <div class="card-title">📜 Versículos</div>
+                            <div id="bible-verse-list" class="verse-list-modern flex-scroll">
+                                <!-- Verses injected by JS -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- MÍDIA TAB -->
+            <div id="tab-midia" class="panel-tab" style="display: none;">
+                 <!-- Top Bar -->
+                 <div class="top-bar">
+                    <div>
+                        <div class="page-heading">🎬 Mídia e Extras</div>
+                        <div class="page-sub">Controle de exibição especial no telão</div>
+                    </div>
+                    <div class="top-actions">
+                        <button class="btn-top danger" onclick="stopMedia()"><i data-lucide="octagon-pause" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i> Parar Mídia</button>
+                        <button class="btn-top success rest-btn" onclick="toggleRestScreen()">☕ <span class="action-label">Descanso</span></button>
+                    </div>
+                </div>
+
+                <div class="content-columns media-columns" style="overflow-y: auto;">
+                    <div class="media-grid">
+                        
+                        <!-- Tithes & Offerings -->
+                        <section class="media-card">
+                            <div class="card-header">
+                                <i data-lucide="hand-coins" class="icon-tithes"></i>
+                                <h3>Dízimos e Ofertas</h3>
+                            </div>
+                            <button class="btn-action bg-sky" onclick="showTithes(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Enviado!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'qr-code\' class=\'icon-btn\'></i>Exibir Imagem Pix'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                                <i data-lucide="qr-code" class="icon-btn"></i>
+                                Exibir Imagem Pix
+                            </button>
+                        </section>
+
+                        <!-- Clock Section -->
+                        <section class="media-card">
+                            <div class="card-header">
+                                <i data-lucide="clock" class="icon-clock"></i>
+                                <h3>Relógio</h3>
+                            </div>
+                            <button class="btn-action bg-purple" onclick="showClock(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Exibindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'eye\' class=\'icon-btn\'></i>Exibir Relógio'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                                <i data-lucide="eye" class="icon-btn"></i>
+                                Exibir Relógio
+                            </button>
+                        </section>
+
+                        <!-- Opening Section -->
+                        <section class="media-card">
+                            <div class="card-header">
+                                <i data-lucide="sparkles" class="icon-opening"></i>
+                                <h3>Abertura</h3>
+                            </div>
+                            <button class="btn-action bg-pink" onclick="playPresetVideo(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Reproduzindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'rocket\' class=\'icon-btn\'></i>Abertura Padrão'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                                <i data-lucide="rocket" class="icon-btn"></i>
+                                Abertura Padrão
+                            </button>
+                        </section>
+
+                        <!-- YouTube Section -->
+                        <section class="media-card">
+                            <div class="card-header">
+                                <i data-lucide="youtube" class="icon-youtube"></i>
+                                <h3>Vídeo (YouTube)</h3>
+                            </div>
+                            <div class="input-group">
+                                <input type="text" id="video-url-input" class="media-input search-inp" placeholder="Cole o link aqui...">
+                            </div>
+                            <button class="btn-action bg-sky mt-auto" onclick="playCustomVideo(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Reproduzindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'play\' class=\'icon-btn\'></i>Reproduzir'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                                <i data-lucide="play" class="icon-btn fill-current"></i>
+                                Reproduzir
+                            </button>
+                        </section>
+
+                        <!-- Announcements Section -->
+                        <section class="media-card span-2">
+                            <div class="card-header">
+                                <i data-lucide="megaphone" class="icon-announcements"></i>
+                                <h3>Avisos</h3>
+                            </div>
+                            
+                            <div class="editor-container">
+                                <div class="editor-toolbar">
+                                    <button class="format-btn" onclick="formatText('bold')" title="Negrito"><i data-lucide="bold"></i></button>
+                                    <button class="format-btn" onclick="formatText('italic')" title="Itálico"><i data-lucide="italic"></i></button>
+                                    <button class="format-btn" onclick="formatText('underline')" title="Sublinhado"><i data-lucide="underline"></i></button>
+                                    <div class="toolbar-divider"></div>
+                                    <label class="color-picker-label" title="Cor do Texto">
+                                        <input type="color" id="textColorPicker" class="color-picker" onchange="formatTextColor(this.value)">
+                                    </label>
+                                    <div class="toolbar-divider"></div>
+                                    <button class="format-btn text-size-btn" onclick="changeFontSize(1)" title="Aumentar Fonte">A+</button>
+                                    <button class="format-btn text-size-btn" onclick="changeFontSize(-1)" title="Diminuir Fonte">A-</button>
+                                    <div class="toolbar-divider"></div>
+                                    <button class="format-btn" onclick="document.getElementById('image-upload-input').click()" title="Anexar Imagem"><i data-lucide="image"></i></button>
+                                    <input type="file" id="image-upload-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                                </div>
+                                
+                                <div id="announcement-input" class="media-textarea content-editable" contenteditable="true" data-placeholder="Digite o aviso aqui..."></div>
+                                
+                                <div id="image-preview-container" class="image-preview-wrapper" style="display: none;">
+                                    <img id="announcement-image-preview" src="" alt="Preview">
+                                    <button class="remove-image-btn" onclick="removeImagePreview()" title="Remover Imagem">
+                                        <i data-lucide="x"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button class="btn-action bg-sky" onclick="showAnnouncement(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Enviado!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'send\' class=\'icon-btn hover-slide\'></i>Exibir Aviso'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                                <i data-lucide="send" class="icon-btn hover-slide"></i>
+                                Exibir Aviso
+                            </button>
+                        </section>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR TAB -->
+            <div id="tab-qr" class="panel-tab" style="display: none;">
+                <div class="top-bar">
+                    <div>
+                        <div class="page-heading">📱 Sistema / Terminais</div>
+                        <div class="page-sub">Conecte outros dispositivos à rede</div>
+                    </div>
+                </div>
+
+                <div class="content-columns" style="align-items: center; justify-content: center; height: 100%;">
+                    <div class="card" style="text-align: center; padding: 40px; max-width: 400px; margin: 0 auto;">
+                        <h2 style="color: white; margin-bottom: 20px;">QR Code de Acesso</h2>
+                        <div class="qr-container" style="background: white; padding: 20px; border-radius: 12px; display: inline-block; margin-bottom: 20px;">
+                            <img id="qr-code" alt="QR Code" style="width: 200px; height: 200px; display:block;">
+                        </div>
+                        <p style="color: #8b96a5; font-size: 14px;">
+                            Escaneie este código com outro celular ou tablet para acessar o painel de controle ou apenas visualizar como tela de retorno.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- End main-area -->
     </div>
-
 
     <!-- Add Song Modal -->
     <div id="add-song-modal" class="modal-full">
         <div class="control-header">
             <div class="header-top">
                 <h2>Adicionar Música</h2>
-                <button class="icon-btn" onclick="closeAddModal()">✕</button>
+                <button class="icon-btn" onclick="closeAddModal()" style="color: white;">✕</button>
             </div>
         </div>
 
         <div class="modal-content-wrapper" style="padding: 20px;">
             <div class="tab-container">
-                <button class="tab-btn active" onclick="switchTab('search-online')">🔍 Buscar Online</button>
-                <button class="tab-btn" onclick="switchTab('manual-add')">✏️ Manual</button>
+                <button class="tab-btn active" onclick="switchModalTab('search-online')">🔍 Buscar Online</button>
+                <button class="tab-btn" onclick="switchModalTab('manual-add')">✏️ Manual</button>
             </div>
 
             <!-- Tab 1: Search Online -->
-            <div id="search-online" class="tab-content active">
+            <div id="search-online" class="modal-tab-content active">
                 <input type="text" id="online-search-input" placeholder="Digite o nome da música..."
                     onkeyup="if(event.key === 'Enter') searchOnlineSong()">
                 <button class="btn primary" style="width:100%; margin-bottom:20px;"
                     onclick="searchOnlineSong()">Buscar</button>
-                <div id="online-loading" style="display:none; text-align:center; padding: 10px;">⌛ Buscando...</div>
+                <div id="online-loading" style="display:none; text-align:center; padding: 10px; color: white;">⌛ Buscando...</div>
                 <div id="online-results-list"></div>
             </div>
 
             <!-- Tab 2: Manual Add -->
-            <div id="manual-add" class="tab-content">
+            <div id="manual-add" class="modal-tab-content" style="display:none;">
                 <input type="text" id="new-song-title" placeholder="Título da Música">
                 <textarea id="new-song-lyrics"
                     placeholder="Cole a letra aqui... (Use duas quebras de linha para separar estrofes)"></textarea>
@@ -474,9 +499,8 @@
             </div>
         </div>
     </div>
-    <!-- End of control-view wrapper (just in case) -->
 
-    <script src="script.js?v=3.8.0"></script>
+    <script src="script.js?v=4.0.0"></script>
     <script>
         // Initialize Lucide icons
         lucide.createIcons();

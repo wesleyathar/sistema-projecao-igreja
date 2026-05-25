@@ -36,12 +36,14 @@ function checkHash() {
     const hash = window.location.hash;
     if (hash === '#display') {
         selectRole('display');
+    } else if (hash === '#panel') {
+        selectRole('panel', 'tab-louvor');
     } else if (hash === '#control') {
-        selectRole('control');
+        selectRole('panel', 'tab-louvor');
     } else if (hash === '#bible') {
-        selectRole('bible');
+        selectRole('panel', 'tab-biblia');
     } else if (hash === '#video') {
-        selectRole('video');
+        selectRole('panel', 'tab-midia');
     }
 }
 
@@ -53,49 +55,58 @@ window.onload = () => {
     createBubbles();
 };
 
-function selectRole(selectedRole) {
+function selectRole(selectedRole, startTab = 'tab-louvor') {
     role = selectedRole;
     document.getElementById('start-screen').style.display = 'none';
 
     if (role === 'display') {
         document.getElementById('display-view').style.display = 'flex';
-        document.getElementById('control-view').style.display = 'none';
+        if(document.getElementById('unified-panel')) document.getElementById('unified-panel').style.display = 'none';
         connectWS();
         goFullScreen();
-    } else if (role === 'control') {
+    } else if (role === 'panel') {
         document.getElementById('display-view').style.display = 'none';
-        document.getElementById('control-view').style.display = 'block';
+        if(document.getElementById('unified-panel')) document.getElementById('unified-panel').style.display = 'flex';
+        
+        switchPanelTab(startTab);
         connectWS();
 
         // Generate QR Code for sharing (using simple API)
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href)}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href.split('#')[0] + '#panel')}`;
         const img = document.getElementById('qr-code');
-        img.src = qrUrl;
-        img.style.display = 'inline-block';
-    } else if (role === 'bible') {
-        document.getElementById('display-view').style.display = 'none';
-        document.getElementById('control-view').style.display = 'none';
-        document.getElementById('bible-view').style.display = 'block';
-        connectWS();
-    } else if (role === 'video') {
-        document.getElementById('display-view').style.display = 'none';
-        document.getElementById('control-view').style.display = 'none';
-        document.getElementById('bible-view').style.display = 'none';
-        document.getElementById('video-control-view').style.display = 'block';
-        connectWS();
+        if(img) {
+            img.src = qrUrl;
+            img.style.display = 'inline-block';
+        }
     }
+}
+
+function switchPanelTab(tabId) {
+    // Hide all tabs
+    document.querySelectorAll('.panel-tab').forEach(el => el.style.display = 'none');
+    
+    // Show active tab
+    const activeTab = document.getElementById(tabId);
+    if (activeTab) activeTab.style.display = 'block';
+
+    // Update sidebar buttons
+    document.querySelectorAll('.sidebar .nav-item').forEach(btn => btn.classList.remove('active'));
+    
+    // Find button associated with this tab (based on id or onclick)
+    let activeBtn;
+    if(tabId === 'tab-louvor') activeBtn = document.getElementById('btn-tab-louvor');
+    if(tabId === 'tab-biblia') activeBtn = document.getElementById('btn-tab-biblia');
+    if(tabId === 'tab-midia') activeBtn = document.getElementById('btn-tab-midia');
+    if(tabId === 'tab-qr') activeBtn = document.getElementById('btn-tab-qr');
+    
+    if (activeBtn) activeBtn.classList.add('active');
 }
 
 function showStartScreen() {
     role = null;
     document.getElementById('start-screen').style.display = 'flex';
     document.getElementById('display-view').style.display = 'none';
-    document.getElementById('control-view').style.display = 'none';
-    document.getElementById('control-view').style.display = 'none';
-    document.getElementById('bible-view').style.display = 'none';
-    document.getElementById('video-control-view').style.display = 'none';
-
-    // Clear hash without reloading
+    if(document.getElementById('unified-panel')) document.getElementById('unified-panel').style.display = 'none';
 
     // Clear hash without reloading
     history.pushState("", document.title, window.location.pathname + window.location.search);
@@ -106,14 +117,14 @@ function connectWS() {
 
     ws.onopen = () => {
         console.log('Connected to WS');
-        if (role === 'control' || role === 'bible') {
+        if (role === 'panel') {
             updateConnectionStatus(true);
         }
     };
 
     ws.onclose = () => {
         console.log('Disconnected. Reconnecting...');
-        if (role === 'control' || role === 'bible') {
+        if (role === 'panel') {
             updateConnectionStatus(false);
         }
         setTimeout(connectWS, reconnectInterval);
@@ -140,23 +151,48 @@ function handleStateUpdate(state) {
 
     if (role === 'display') {
         renderDisplay(isRestScreen);
-    } else if (role === 'control') {
+    } else if (role === 'panel') {
         renderControl();
+        renderBibleControl();
+        renderVideoControl(state.media);
+        
         // Toggle Blackout Button Class
-        const btnBlackout = document.querySelector('.blackout-btn');
-        if (btnBlackout) {
+        const btnsBlackout = document.querySelectorAll('.blackout-btn');
+        btnsBlackout.forEach(btnBlackout => {
             if (isBlackout) {
                 btnBlackout.classList.add('active');
-                btnBlackout.querySelector('.action-label').textContent = 'Em Blackout';
             } else {
                 btnBlackout.classList.remove('active');
-                btnBlackout.querySelector('.action-label').textContent = 'Blackout';
+            }
+        });
+        
+        // Update badges based on what is active
+        // If it's a song, show badge on Louvor
+        // If it's a bible verse, show badge on Biblia
+        // If it's media, show badge on Media
+        document.getElementById('badge-louvor').style.display = 'none';
+        document.getElementById('badge-biblia').style.display = 'none';
+        document.getElementById('badge-midia').style.display = 'none';
+        
+        if (!isRestScreen) {
+            if (state.media && state.media.type !== 'NONE') {
+                document.getElementById('badge-midia').style.display = 'block';
+            } else if (currentSong) {
+                // Determine if it's a bible verse or song by checking the title
+                if (currentSong.titulo && currentSong.titulo.match(/^[1-3]?\s?[a-zA-Záéíóúãõç]+ \d+/)) {
+                    // Simple heuristic: starts with Book Name and Number -> Bible
+                    // Or if current verse has verse number formatting "1. ..."
+                    const firstVerse = currentSong.estrofes[0];
+                    if (firstVerse && firstVerse.match(/^\d+\./)) {
+                        document.getElementById('badge-biblia').style.display = 'block';
+                    } else {
+                        document.getElementById('badge-louvor').style.display = 'block';
+                    }
+                } else {
+                    document.getElementById('badge-louvor').style.display = 'block';
+                }
             }
         }
-    } else if (role === 'bible') {
-        renderBibleControl();
-    } else if (role === 'video') {
-        renderVideoControl(state.media);
     }
 
     // Toggle Rest Screen Button Class (ALL buttons, on all views)
@@ -398,8 +434,15 @@ function updateConnectionStatus(connected) {
     const dotEl = document.getElementById('connection-dot');
     const bibleStatusEl = document.getElementById('bible-connection-status');
 
+    const unifiedStatusEl = document.getElementById('unified-connection-status');
+    const unifiedDotEl = document.getElementById('unified-connection-dot');
+
     if (statusEl) {
         statusEl.textContent = connected ? 'Conectado' : 'Desconectado';
+    }
+    
+    if (unifiedStatusEl) {
+        unifiedStatusEl.textContent = connected ? 'Conectado' : 'Desconectado';
     }
 
     if (dotEl) {
@@ -407,6 +450,16 @@ function updateConnectionStatus(connected) {
             dotEl.classList.add('connected');
         } else {
             dotEl.classList.remove('connected');
+        }
+    }
+    
+    if (unifiedDotEl) {
+        if (connected) {
+            unifiedDotEl.classList.add('connected');
+            unifiedDotEl.classList.remove('disconnected');
+        } else {
+            unifiedDotEl.classList.remove('connected');
+            unifiedDotEl.classList.add('disconnected');
         }
     }
 
@@ -685,21 +738,21 @@ function openAddModal() {
     modal.style.display = 'block';
 
     // Reset to manual tab
-    switchTab('manual-add');
+    switchModalTab('manual-add');
     const searchInput = document.getElementById('online-search-input');
     if (searchInput) searchInput.value = '';
     const resultsList = document.getElementById('online-results-list');
     if (resultsList) resultsList.innerHTML = '';
 }
 
-function switchTab(tabId) {
+function switchModalTab(tabId) {
     // Content
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.modal-tab-content').forEach(el => el.classList.remove('active'));
     const content = document.getElementById(tabId);
     if (content) content.classList.add('active');
 
     // Buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    document.querySelectorAll('.tab-container .tab-btn').forEach(btn => {
         btn.classList.remove('active');
         // Simple check to highlight the correct button
         if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(tabId)) {
