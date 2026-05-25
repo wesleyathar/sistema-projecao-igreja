@@ -23,6 +23,7 @@ const WS_URL = `${protocol}//${hostname}:${port}`;
 
 // App State
 let songs = [];
+let setlist = [];
 let currentSong = null;
 let currentVerseIndex = -1;
 let isBlackout = false;
@@ -50,6 +51,7 @@ function checkHash() {
 window.onload = () => {
     checkHash();
     loadLibrary();
+    loadSetlist();
 
     // Generate bubbles
     createBubbles();
@@ -155,6 +157,7 @@ function handleStateUpdate(state) {
         renderControl();
         renderBibleControl();
         renderVideoControl(state.media);
+        renderSetlist();
         
         // Toggle Blackout Button Class
         const btnsBlackout = document.querySelectorAll('.blackout-btn');
@@ -835,7 +838,7 @@ function selectOnlineSong(id, artist, title) {
             document.getElementById('new-song-lyrics').value = data.lyrics;
 
             // Switch to Manual Tab
-            switchTab('manual-add');
+            switchModalTab('manual-add');
         })
         .catch(err => {
             loading.style.display = 'none';
@@ -854,7 +857,7 @@ function openEditModal(index) {
     document.getElementById('new-song-lyrics').value = song.estrofes.join('\n\n');
 
     document.getElementById('add-song-modal').style.display = 'block';
-    switchTab('manual-add'); // Always start editing in manual
+    switchModalTab('manual-add'); // Always start editing in manual
 }
 
 function closeAddModal() {
@@ -1310,3 +1313,256 @@ function renderVideoControl(mediaState) {
     // Optional status update
 }
 loadBibleOffline();
+
+// --- Vagalume Search ---
+function searchVagalumeSong() {
+    const query = document.getElementById('vagalume-search-input').value.trim();
+    if (!query) return;
+
+    const resultsList = document.getElementById('vagalume-results-list');
+    const loading = document.getElementById('vagalume-loading');
+
+    resultsList.innerHTML = '';
+    loading.style.display = 'block';
+
+    fetch(`/api/search/vagalume?q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+            loading.style.display = 'none';
+            if (data.error) {
+                resultsList.innerHTML = `<div style="text-align:center; padding:10px; color:#f56565;">Erro ao buscar: ${data.error}</div>`;
+                return;
+            }
+            displayVagalumeResults(data.data);
+        })
+        .catch(err => {
+            loading.style.display = 'none';
+            resultsList.innerHTML = '<div style="text-align:center; padding:10px; color:#f56565;">Erro de conexão.</div>';
+            console.error(err);
+        });
+}
+
+function displayVagalumeResults(results) {
+    const list = document.getElementById('vagalume-results-list');
+    list.innerHTML = '';
+
+    if (!results || results.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:10px; color:#a0aec0;">Nenhuma música encontrada.</div>';
+        return;
+    }
+
+    results.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'online-result-item';
+        div.innerHTML = `
+            <div class="online-song-title">${item.title}</div>
+            <div class="online-artist-name">${item.artist.name}</div>
+        `;
+        div.onclick = () => selectVagalumeSong(item.artist.name, item.title);
+        list.appendChild(div);
+    });
+}
+
+function selectVagalumeSong(artist, title) {
+    const loading = document.getElementById('vagalume-loading');
+    loading.style.display = 'block';
+    loading.textContent = '⌛ Baixando letra...';
+
+    fetch(`/api/lyrics/vagalume?art=${encodeURIComponent(artist)}&mus=${encodeURIComponent(title)}`)
+        .then(res => res.json())
+        .then(data => {
+            loading.style.display = 'none';
+            loading.textContent = '⌛ Buscando no Vagalume...'; // Reset text
+
+            if (data.error || !data.lyrics) {
+                alert('Erro: Letra não encontrada no Vagalume.');
+                return;
+            }
+
+            // Fill Manual Form
+            document.getElementById('new-song-title').value = title;
+            document.getElementById('new-song-lyrics').value = data.lyrics;
+
+            // Switch to Manual Tab
+            switchModalTab('manual-add');
+        })
+        .catch(err => {
+            loading.style.display = 'none';
+            loading.textContent = '⌛ Buscando no Vagalume...';
+            alert('Erro ao baixar letra.');
+            console.error(err);
+        });
+}
+
+// --- Setlist System ---
+function loadSetlist() {
+    try {
+        const stored = localStorage.getItem('canaa_setlist');
+        if (stored) {
+            setlist = JSON.parse(stored);
+        } else {
+            setlist = [];
+        }
+    } catch (e) {
+        console.error('Failed to load setlist', e);
+        setlist = [];
+    }
+    renderSetlist();
+}
+
+function saveSetlist() {
+    try {
+        localStorage.setItem('canaa_setlist', JSON.stringify(setlist));
+    } catch (e) {
+        console.error('Failed to save setlist', e);
+    }
+    renderSetlist();
+}
+
+function renderSetlist() {
+    const container = document.getElementById('setlist-container');
+    if (!container) return;
+
+    if (setlist.length === 0) {
+        container.innerHTML = `<div style="color: #4a5568; font-size: 12px; text-align: center; padding: 10px;">Nenhuma música na setlist</div>`;
+        return;
+    }
+
+    container.innerHTML = '';
+    setlist.forEach((song, index) => {
+        const div = document.createElement('div');
+        div.className = 'setlist-item';
+
+        // Check if this song is currently playing on the projector
+        const isCurrent = currentSong && currentSong.titulo.toLowerCase() === song.titulo.toLowerCase();
+        if (isCurrent) {
+            div.style.borderColor = 'var(--accent-blue)';
+            div.style.background = 'rgba(0, 168, 255, 0.08)';
+        }
+
+        div.innerHTML = `
+            <div class="setlist-info">
+                <div class="setlist-title">${song.titulo}</div>
+                <div class="setlist-artist">${song.artista || 'Biblioteca'}</div>
+            </div>
+            <div class="setlist-actions">
+                <button class="btn-setlist-del" title="Remover da Setlist">✕</button>
+            </div>
+        `;
+
+        // Click info to load/project song
+        div.querySelector('.setlist-info').onclick = () => {
+            playSetlistSong(index);
+        };
+
+        // Click delete to remove from setlist
+        div.querySelector('.btn-setlist-del').onclick = (e) => {
+            e.stopPropagation();
+            removeFromSetlist(index);
+        };
+
+        container.appendChild(div);
+    });
+}
+
+function playSetlistSong(index) {
+    if (index < 0 || index >= setlist.length) return;
+    const song = setlist[index];
+    
+    // Normalize estrofes if not already formatted properly
+    const normalized = normalizeSongs([song])[0];
+    currentSong = normalized;
+    currentVerseIndex = 0;
+    isBlackout = false;
+    
+    // Send to server
+    if (checkConnection()) {
+        ws.send(JSON.stringify({
+            type: 'SET_SONG',
+            payload: normalized
+        }));
+    }
+    
+    // Update local UI
+    document.getElementById('active-song-title').textContent = song.titulo;
+    renderControl();
+    renderSetlist(); // Re-render to highlight active one
+}
+
+function addToSetlistCurrent() {
+    const select = document.getElementById('song-select');
+    if (!select || select.selectedIndex === -1) {
+        alert('Selecione uma música da lista para adicionar!');
+        return;
+    }
+    
+    const val = select.value;
+    if (val === "") {
+        alert('Selecione uma música válida!');
+        return;
+    }
+    
+    const index = parseInt(val);
+    if (isNaN(index) || index < 0 || index >= songs.length) return;
+    
+    const song = songs[index];
+    
+    // Check if already in setlist
+    const exists = setlist.some(s => s.titulo.toLowerCase() === song.titulo.toLowerCase());
+    if (exists) {
+        alert('Esta música já está na setlist!');
+        return;
+    }
+    
+    setlist.push({
+        titulo: song.titulo,
+        artista: 'Biblioteca',
+        estrofes: song.estrofes
+    });
+    
+    saveSetlist();
+}
+
+function removeFromSetlist(index) {
+    if (index < 0 || index >= setlist.length) return;
+    setlist.splice(index, 1);
+    saveSetlist();
+}
+
+function saveNewSongToSetlist() {
+    const titleInput = document.getElementById('new-song-title');
+    const lyricsInput = document.getElementById('new-song-lyrics');
+    
+    const title = titleInput.value.trim();
+    const lyrics = lyricsInput.value.trim();
+    
+    if (!title || !lyrics) {
+        alert('Por favor, preencha o título e a letra!');
+        return;
+    }
+    
+    // Parse estrofes (double line break splits)
+    const estrofes = lyrics.split(/\n\s*\n/).map(e => e.trim()).filter(e => e.length > 0);
+    
+    if (estrofes.length === 0) {
+        alert('Letra inválida!');
+        return;
+    }
+    
+    // Check if exists
+    const exists = setlist.some(s => s.titulo.toLowerCase() === title.toLowerCase());
+    if (exists) {
+        if (!confirm('Já existe uma música com este nome na setlist. Deseja adicionar mesmo assim?')) {
+            return;
+        }
+    }
+    
+    setlist.push({
+        titulo: title,
+        artista: 'Personalizada',
+        estrofes: estrofes
+    });
+    
+    saveSetlist();
+    closeAddModal();
+}

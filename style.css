@@ -1893,4 +1893,57 @@ textarea {
 
 /* Modal tabs */
 .modal-tab-content { display: none; }
-.modal-tab-content.active { display: block; }
+.modal-tab-content.active { display: block; }
+
+/* Setlist item styles */
+.setlist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: all 0.2s ease;
+}
+.setlist-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+.setlist-info {
+    flex: 1;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.setlist-title {
+    color: #e2e8f0;
+    font-size: 13.5px;
+    font-weight: 500;
+}
+.setlist-artist {
+    color: #718096;
+    font-size: 11px;
+}
+.setlist-actions {
+    display: flex;
+    gap: 6px;
+}
+.btn-setlist-del {
+    background: transparent;
+    border: none;
+    color: #e53e3e;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: all 0.2s;
+}
+.btn-setlist-del:hover {
+    background: rgba(229, 62, 62, 0.15);
+    opacity: 1;
+}

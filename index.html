@@ -215,6 +215,7 @@
                     <div class="top-actions">
                         <button class="btn-top danger blackout-btn" onclick="toggleBlackout()">🚫 <span class="action-label">Blackout</span></button>
                         <button class="btn-top success rest-btn" onclick="toggleRestScreen()">☕ <span class="action-label">Descanso</span></button>
+                        <button class="btn-top secondary" onclick="addToSetlistCurrent()">➕ Setlist</button>
                         <button class="btn-top primary" onclick="loadSelectedSong()">☁️ Carregar Música</button>
                     </div>
                 </div>
@@ -244,6 +245,16 @@
                             <div class="nav-grid">
                                 <button class="nav-btn-large" onclick="prevVerse()"><span class="icon">⬆</span> Anterior</button>
                                 <button class="nav-btn-large" onclick="nextVerse()"><span class="icon">⬇</span> Próxima</button>
+                            </div>
+                        </div>
+
+                        <!-- Setlist Card -->
+                        <div class="card">
+                            <div class="card-title-flex">
+                                <span>📋 Setlist do Culto</span>
+                            </div>
+                            <div id="setlist-container" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                                <div style="color: #4a5568; font-size: 12px; text-align: center; padding: 10px;">Nenhuma música na setlist</div>
                             </div>
                         </div>
 
@@ -471,18 +482,28 @@
             </div>
         </div>
 
-        <div class="modal-content-wrapper" style="padding: 20px;">
             <div class="tab-container">
-                <button class="tab-btn active" onclick="switchModalTab('search-online')">🔍 Buscar Online</button>
+                <button class="tab-btn active" onclick="switchModalTab('search-vagalume')">🇧🇷 Buscar Vagalume</button>
+                <button class="tab-btn" onclick="switchModalTab('search-online')">🌐 Buscar LrcLib</button>
                 <button class="tab-btn" onclick="switchModalTab('manual-add')">✏️ Manual</button>
             </div>
 
+            <!-- Tab 0: Search Vagalume -->
+            <div id="search-vagalume" class="modal-tab-content active">
+                <input type="text" id="vagalume-search-input" placeholder="Buscar música no Vagalume..."
+                    onkeyup="if(event.key === 'Enter') searchVagalumeSong()">
+                <button class="btn primary" style="width:100%; margin-bottom:20px;"
+                    onclick="searchVagalumeSong()">Buscar no Vagalume</button>
+                <div id="vagalume-loading" style="display:none; text-align:center; padding: 10px; color: white;">⌛ Buscando no Vagalume...</div>
+                <div id="vagalume-results-list"></div>
+            </div>
+
             <!-- Tab 1: Search Online -->
-            <div id="search-online" class="modal-tab-content active">
+            <div id="search-online" class="modal-tab-content" style="display:none;">
                 <input type="text" id="online-search-input" placeholder="Digite o nome da música..."
                     onkeyup="if(event.key === 'Enter') searchOnlineSong()">
                 <button class="btn primary" style="width:100%; margin-bottom:20px;"
-                    onclick="searchOnlineSong()">Buscar</button>
+                    onclick="searchOnlineSong()">Buscar no LrcLib</button>
                 <div id="online-loading" style="display:none; text-align:center; padding: 10px; color: white;">⌛ Buscando...</div>
                 <div id="online-results-list"></div>
             </div>
@@ -491,10 +512,11 @@
             <div id="manual-add" class="modal-tab-content" style="display:none;">
                 <input type="text" id="new-song-title" placeholder="Título da Música">
                 <textarea id="new-song-lyrics"
-                    placeholder="Cole a letra aqui... (Use duas quebras de linha para separar estrofes)"></textarea>
-                <div class="modal-actions">
-                    <button class="btn danger" onclick="closeAddModal()">Cancelar</button>
-                    <button class="btn primary" onclick="saveNewSong()">Salvar</button>
+                    placeholder="Cole a letra aqui... (Use duas quebras de linha para separar estrofes)" style="min-height: 250px;"></textarea>
+                <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn danger" onclick="closeAddModal()" style="flex:1;">Cancelar</button>
+                    <button class="btn secondary" onclick="saveNewSongToSetlist()" style="flex:1;">➕ Salvar na Setlist</button>
+                    <button class="btn primary" onclick="saveNewSong()" style="flex:1;">💾 Salvar na Biblioteca</button>
                 </div>
             </div>
         </div>

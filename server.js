@@ -56,9 +56,15 @@ const SCRAPER_HEADERS = {
 const isPkg = typeof process.pkg !== 'undefined';
 const dataRoot = isPkg ? path.dirname(process.execPath) : __dirname;
 const lyricsFilePath = path.join(dataRoot, 'lyrics.json');
+const setlistFilePath = path.join(dataRoot, 'setlist.json');
 
 console.log(`[SYSTEM] Running in ${isPkg ? 'PACKAGED' : 'DEVELOPMENT'} mode`);
 console.log(`[SYSTEM] Lyrics file path: ${lyricsFilePath}`);
+
+// Ensure setlist file exists
+if (!fs.existsSync(setlistFilePath)) {
+    fs.writeFileSync(setlistFilePath, '[]', 'utf8');
+}
 
 // Ensure lyrics file exists in the external path if running packaged
 if (isPkg && !fs.existsSync(lyricsFilePath)) {
@@ -174,6 +180,104 @@ const server = http.createServer((req, res) => {
                 res.writeHead(500);
                 res.end(JSON.stringify({ error: 'Lyrics fetch failed' }));
             });
+        return;
+    }
+
+    // --- SETLIST ENDPOINTS ---
+    if (cleanUrl === '/api/setlist') {
+        if (req.method === 'GET') {
+            fs.readFile(setlistFilePath, (err, content) => {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(err ? '[]' : content);
+            });
+            return;
+        }
+        if (req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => body += chunk);
+            req.on('end', () => {
+                try {
+                    const parsed = JSON.parse(body);
+                    fs.writeFile(setlistFilePath, JSON.stringify(parsed, null, 2), (err) => {
+                        if (err) { res.writeHead(500); res.end('{"error":"save failed"}'); }
+                        else { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}'); }
+                    });
+                } catch(e) { res.writeHead(400); res.end('{"error":"invalid json"}'); }
+            });
+            return;
+        }
+    }
+
+    // --- VAGALUME SEARCH (Autocomplete API) ---
+    if (cleanUrl === '/api/search/vagalume') {
+        const query = urlParts.searchParams.get('q');
+        if (!query) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'Missing query' }));
+            return;
+        }
+        console.log(`[VAGALUME Search] ${query}`);
+        axios.get(`https://api.vagalume.com.br/search.artmus`, {
+            params: { q: query, limit: 10 },
+            headers: { 'User-Agent': 'SistemaIgreja/4.0' }
+        })
+        .then(response => {
+            const data = response.data;
+            if (!data || !data.response || !data.response.docs) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ data: [] }));
+                return;
+            }
+            // Filter only docs with title (which are songs)
+            const results = data.response.docs
+                .filter(doc => doc.title)
+                .map(doc => ({
+                    id: doc.id,
+                    title: doc.title,
+                    artist: { name: doc.band },
+                    hasLyrics: true
+                }));
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ data: results }));
+        })
+        .catch(err => {
+            console.error('[VAGALUME Search Error]', err.message);
+            res.writeHead(500);
+            res.end(JSON.stringify({ error: 'Vagalume search failed' }));
+        });
+        return;
+    }
+
+    // --- VAGALUME LYRICS FETCH ---
+    if (cleanUrl === '/api/lyrics/vagalume') {
+        const artist = urlParts.searchParams.get('art');
+        const song = urlParts.searchParams.get('mus');
+        const apiKey = process.env.VAGALUME_API_KEY;
+        if (!artist || !song || !apiKey) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: !apiKey ? 'VAGALUME_API_KEY nao configurada' : 'Missing artist or song' }));
+            return;
+        }
+        console.log(`[VAGALUME Lyrics] Art: ${artist}, Mus: ${song}`);
+        axios.get(`https://api.vagalume.com.br/search.php`, {
+            params: { art: artist, mus: song, apikey: apiKey },
+            headers: { 'User-Agent': 'SistemaIgreja/4.0' }
+        })
+        .then(response => {
+            const data = response.data;
+            if (!data || data.type === 'notfound' || !data.mus || data.mus.length === 0) {
+                res.writeHead(404);
+                res.end(JSON.stringify({ error: 'Lyrics not found' }));
+                return;
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ lyrics: data.mus[0].text }));
+        })
+        .catch(err => {
+            console.error('[VAGALUME Lyrics Error]', err.message);
+            res.writeHead(500);
+            res.end(JSON.stringify({ error: 'Failed to fetch Vagalume lyrics' }));
+        });
         return;
     }
 
