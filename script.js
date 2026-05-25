@@ -291,7 +291,29 @@ function loadLibrary() {
     fetch('lyrics.json?t=' + new Date().getTime()) // Cache busting
         .then(res => res.json())
         .then(data => {
-            songs = normalizeSongs(data);
+            let serverSongs = normalizeSongs(data);
+            
+            // Merge with local storage custom/edited songs to survive Render ephemeral disk restarts
+            try {
+                const storedCustom = localStorage.getItem('canaa_custom_songs');
+                if (storedCustom) {
+                    const customSongs = JSON.parse(storedCustom);
+                    customSongs.forEach(customSong => {
+                        const index = serverSongs.findIndex(s => s.titulo.toLowerCase() === customSong.titulo.toLowerCase());
+                        if (index !== -1) {
+                            // Replace base song with user's edited version
+                            serverSongs[index] = customSong;
+                        } else {
+                            // Add user's custom song to the list
+                            serverSongs.push(customSong);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Erro ao carregar musicas do cache local:', e);
+            }
+
+            songs = serverSongs;
             populateSongSelect();
             if (role === 'control') {
                 renderFullPlaylist();
@@ -923,6 +945,17 @@ function saveNewSong() {
         songs.push(updatedSong);
     }
 
+    // Save to browser localStorage to survive server ephemeral disk restarts
+    try {
+        let customSongs = JSON.parse(localStorage.getItem('canaa_custom_songs') || '[]');
+        // Filter out any existing item with the same title to prevent duplication
+        customSongs = customSongs.filter(s => s.titulo.toLowerCase() !== title.toLowerCase());
+        customSongs.push(updatedSong);
+        localStorage.setItem('canaa_custom_songs', JSON.stringify(customSongs));
+    } catch(e) {
+        console.error('Erro ao salvar musica no cache local:', e);
+    }
+
     populateSongSelect();
 
     // Select the song automatically
@@ -1398,27 +1431,61 @@ function selectVagalumeSong(artist, title, url) {
 
 // --- Setlist System ---
 function loadSetlist() {
+    // 1. Try to load from localStorage first as instant cache/fallback
     try {
         const stored = localStorage.getItem('canaa_setlist');
         if (stored) {
             setlist = JSON.parse(stored);
-        } else {
-            setlist = [];
+            renderSetlist();
         }
     } catch (e) {
-        console.error('Failed to load setlist', e);
-        setlist = [];
+        console.error('Failed to load local setlist cache:', e);
     }
-    renderSetlist();
+
+    // 2. Fetch the server's setlist JSON to stay in sync with other devices
+    fetch('/api/setlist')
+        .then(res => res.json())
+        .then(data => {
+            if (data && Array.isArray(data) && data.length > 0) {
+                setlist = data;
+                // Update local storage too to keep in sync
+                try {
+                    localStorage.setItem('canaa_setlist', JSON.stringify(setlist));
+                } catch(e) {}
+                renderSetlist();
+            }
+        })
+        .catch(err => {
+            console.log('Server setlist not available, using offline cache:', err);
+        });
 }
 
 function saveSetlist() {
+    // 1. Update localStorage instantly
     try {
         localStorage.setItem('canaa_setlist', JSON.stringify(setlist));
     } catch (e) {
-        console.error('Failed to save setlist', e);
+        console.error('Failed to save setlist locally:', e);
     }
     renderSetlist();
+
+    // 2. Post to server to sync with other devices
+    fetch('/api/setlist', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(setlist)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data || !data.ok) {
+            console.warn('Server failed to save setlist');
+        }
+    })
+    .catch(err => {
+        console.error('Failed to sync setlist with server:', err);
+    });
 }
 
 function renderSetlist() {
