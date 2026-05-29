@@ -870,6 +870,86 @@ function selectOnlineSong(id, artist, title) {
         });
 }
 
+// --- Vagalume Search Logic ---
+function searchVagalumeSong() {
+    const query = document.getElementById('vagalume-search-input').value.trim();
+    if (!query) return;
+
+    const resultsList = document.getElementById('vagalume-results-list');
+    const loading = document.getElementById('vagalume-loading');
+
+    resultsList.innerHTML = '';
+    loading.style.display = 'block';
+
+    fetch(`/api/search/vagalume?q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+            loading.style.display = 'none';
+            if (data.error) {
+                resultsList.innerHTML = `<div style="text-align:center; padding:10px; color:#fc8181;">Erro: ${data.error}</div>`;
+                return;
+            }
+            displayVagalumeResults(data.data);
+        })
+        .catch(err => {
+            loading.style.display = 'none';
+            resultsList.innerHTML = '<div style="text-align:center; padding:10px; color:#fc8181;">Erro de conexão com o Vagalume.</div>';
+            console.error(err);
+        });
+}
+
+function displayVagalumeResults(results) {
+    const list = document.getElementById('vagalume-results-list');
+    list.innerHTML = '';
+
+    if (!results || results.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:10px; color:#a0aec0;">Nenhuma música encontrada no Vagalume.</div>';
+        return;
+    }
+
+    results.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'online-result-item';
+        div.innerHTML = `
+            <div class="online-song-title">${item.title}</div>
+            <div class="online-artist-name">${item.artist ? item.artist.name : 'Artista Desconhecido'}</div>
+        `;
+        div.onclick = () => selectVagalumeSong(item.artist ? item.artist.name : '', item.title);
+        list.appendChild(div);
+    });
+}
+
+function selectVagalumeSong(artist, title) {
+    const loading = document.getElementById('vagalume-loading');
+    loading.style.display = 'block';
+    loading.textContent = '⌛ Baixando letra do Vagalume...';
+
+    fetch(`/api/lyrics/vagalume?art=${encodeURIComponent(artist)}&mus=${encodeURIComponent(title)}`)
+        .then(res => res.json())
+        .then(data => {
+            loading.style.display = 'none';
+            loading.textContent = '⌛ Buscando no Vagalume...';
+
+            if (data.error || !data.lyrics) {
+                alert('Erro: Letra não encontrada no Vagalume.\n\nTente buscar na Biblioteca Mundial (LrcLib) ou adicione manualmente.');
+                return;
+            }
+
+            // Fill Manual Form with the retrieved lyrics
+            document.getElementById('new-song-title').value = title;
+            document.getElementById('new-song-lyrics').value = data.lyrics;
+
+            // Switch to Manual Tab so user can review before saving
+            switchModalTab('manual-add');
+        })
+        .catch(err => {
+            loading.style.display = 'none';
+            loading.textContent = '⌛ Buscando no Vagalume...';
+            alert('Erro ao baixar letra do Vagalume.');
+            console.error(err);
+        });
+}
+
 function openEditModal(index) {
     editingSongIndex = index;
     const song = songs[index];
