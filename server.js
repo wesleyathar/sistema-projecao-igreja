@@ -476,6 +476,12 @@ wss.on('connection', (ws) => {
                     currentRestScreen = false;
                     broadcastState();
                     break;
+                case 'CLEAR_SONG':
+                    currentSong = null;
+                    currentVerseIndex = -1;
+                    currentShow = false;
+                    broadcastState();
+                    break;
                 case 'SET_VERSE':
                     currentVerseIndex = data.payload;
                     currentRestScreen = false; // ensure lyrics are verified

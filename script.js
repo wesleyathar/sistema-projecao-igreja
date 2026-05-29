@@ -705,12 +705,24 @@ function setVerse(index) {
     }
 }
 
+function clearSong() {
+    if (checkConnection()) {
+        ws.send(JSON.stringify({
+            type: 'CLEAR_SONG'
+        }));
+    }
+}
+
 function requestFullScreenDisplay() {
     alert("Para ativar fullscreen na TV, clique no botão 'TV / Telão' na própria TV.");
 }
 
 function renderControl() {
-    if (!currentSong) return;
+    if (!currentSong) {
+        document.getElementById('active-song-title').textContent = "Nenhuma música selecionada";
+        document.getElementById('verse-list').innerHTML = '';
+        return;
+    }
 
     document.getElementById('active-song-title').textContent = currentSong.titulo;
 
@@ -1083,7 +1095,11 @@ function populateBibleBooks() {
 }
 
 function renderBibleControl() {
-    if (!currentSong) return;
+    if (!currentSong) {
+        document.getElementById('active-bible-ref').textContent = "Nenhum capítulo";
+        document.getElementById('bible-verse-list').innerHTML = '';
+        return;
+    }
 
     document.getElementById('active-bible-ref').textContent = currentSong.titulo;
 
