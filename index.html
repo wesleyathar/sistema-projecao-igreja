@@ -483,8 +483,8 @@
         </div>
 
             <div class="tab-container">
-                <button class="tab-btn active" onclick="switchModalTab('search-online')">🌐 Buscar LrcLib (Recomendado)</button>
-                <button class="tab-btn" onclick="switchModalTab('search-vagalume')">🇧🇷 Buscar Vagalume (Instável)</button>
+                <button class="tab-btn active" onclick="switchModalTab('search-online')">🌐 Biblioteca Mundial (LrcLib)</button>
+                <button class="tab-btn" onclick="switchModalTab('search-vagalume')">🇧🇷 Vagalume (Opção)</button>
                 <button class="tab-btn" onclick="switchModalTab('manual-add')">✏️ Manual</button>
             </div>
 
@@ -493,7 +493,7 @@
                 <input type="text" id="online-search-input" placeholder="Digite o nome da música..."
                     onkeyup="if(event.key === 'Enter') searchOnlineSong()">
                 <button class="btn primary" style="width:100%; margin-bottom:20px;"
-                    onclick="searchOnlineSong()">Buscar no LrcLib</button>
+                    onclick="searchOnlineSong()">Buscar na Biblioteca Mundial</button>
                 <div id="online-loading" style="display:none; text-align:center; padding: 10px; color: white;">⌛ Buscando...</div>
                 <div id="online-results-list"></div>
             </div>

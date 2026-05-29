@@ -209,7 +209,7 @@ const server = http.createServer((req, res) => {
         }
     }
 
-    // --- VAGALUME SEARCH (usa biblioteca @eugabrielsilva/vagalume) ---
+    // --- VAGALUME SEARCH (API oficial search.excerpt com fallback) ---
     if (cleanUrl === '/api/search/vagalume') {
         const query = urlParts.searchParams.get('q');
         if (!query) {
@@ -218,63 +218,66 @@ const server = http.createServer((req, res) => {
             return;
         }
         const apiKey = process.env.VAGALUME_API_KEY;
-        console.log(`[VAGALUME Search] "${query}" | apiKey: ${apiKey ? 'SIM' : 'NAO (busca limitada)'}`);
+        console.log(`[VAGALUME Search] "${query}" | apiKey: ${apiKey ? 'SIM' : 'NAO'}`);
 
-        if (!apiKey) {
-            // Sem API key: chama diretamente o search.php sem apikey (funciona com limite)
-            axios.get('https://api.vagalume.com.br/search.php', {
-                params: { art: query },
-                headers: { 'User-Agent': 'SistemaIgreja/4.0' },
-                timeout: 10000
-            })
-            .then(response => {
-                const data = response.data;
-                if (!data || data.type === 'notfound' || !data.mus || data.mus.length === 0) {
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({ data: [] }));
-                    return;
-                }
-                const results = data.mus.map(m => ({
-                    id: m.id,
-                    title: m.name,
-                    artist: { name: data.art ? data.art.name : query },
-                    url: m.url,
-                    hasLyrics: true
-                }));
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ data: results }));
-            })
-            .catch(err => {
-                console.error('[VAGALUME Search Error]', err.message);
-                res.writeHead(500);
-                res.end(JSON.stringify({ error: 'Vagalume search failed: ' + err.message }));
-            });
-            return;
-        }
+        // A melhor forma de pesquisar e retornar uma lista no Vagalume é com o endpoint search.excerpt
+        const params = { q: query, limit: 10 };
+        if (apiKey) params.apikey = apiKey;
 
-        // Com API key: usa a biblioteca oficial
-        const vagalume = new Vagalume(apiKey);
-        vagalume.search(query)
-        .then(data => {
-            if (!data || !data.mus || data.mus.length === 0) {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ data: [] }));
-                return;
-            }
-            const results = data.mus.map(m => ({
-                id: m.id,
-                title: m.name,
-                artist: { name: data.art ? data.art.name : query },
-                url: m.url,
+        axios.get('https://api.vagalume.com.br/search.excerpt', {
+            params: params,
+            headers: { 'User-Agent': 'SistemaIgreja/4.0' },
+            timeout: 10000
+        })
+        .then(response => {
+            const data = response.data;
+            const docs = data?.response?.docs || [];
+            
+            const results = docs.map(doc => ({
+                id: doc.id,
+                title: doc.title || doc.txt || doc.name || 'Sem título',
+                artist: { name: doc.band || doc.art || 'Artista Desconhecido' },
+                url: doc.url,
                 hasLyrics: true
             }));
+            
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ data: results }));
         })
         .catch(err => {
             console.error('[VAGALUME Search Error]', err.message);
-            res.writeHead(500);
-            res.end(JSON.stringify({ error: 'Vagalume search failed: ' + err.message }));
+            
+            // Se falhar e tivermos a API Key, tentamos buscar usando a biblioteca Vagalume
+            if (apiKey) {
+                console.log('[VAGALUME Search Fallback] Tentando buscar com a biblioteca Vagalume...');
+                const vagalume = new Vagalume(apiKey);
+                vagalume.search(query)
+                .then(data => {
+                    if (data && data.lyrics) {
+                        // A biblioteca só retorna 1 resultado direto. Embrulhamos em uma lista.
+                        const results = [{
+                            id: 'lib-match',
+                            title: data.name,
+                            artist: { name: data.artist },
+                            url: data.url,
+                            hasLyrics: true
+                        }];
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ data: results }));
+                    } else {
+                        res.writeHead(200, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ data: [] }));
+                    }
+                })
+                .catch(libErr => {
+                    console.error('[VAGALUME Search Lib Fallback Error]', libErr.message || libErr);
+                    res.writeHead(500);
+                    res.end(JSON.stringify({ error: 'Vagalume search failed' }));
+                });
+            } else {
+                res.writeHead(500);
+                res.end(JSON.stringify({ error: 'Vagalume search failed: ' + err.message }));
+            }
         });
         return;
     }
@@ -293,10 +296,12 @@ const server = http.createServer((req, res) => {
 
         console.log(`[VAGALUME Lyrics] Art: ${artist}, Mus: ${song} | apiKey: ${apiKey ? 'SIM' : 'NAO'}`);
 
-        if (!apiKey) {
-            // Sem API key: chama search.php diretamente
+        const fetchDirectly = () => {
+            const params = { art: artist, mus: song };
+            if (apiKey) params.apikey = apiKey;
+
             axios.get('https://api.vagalume.com.br/search.php', {
-                params: { art: artist, mus: song },
+                params: params,
                 headers: { 'User-Agent': 'SistemaIgreja/4.0' },
                 timeout: 10000
             })
@@ -315,26 +320,27 @@ const server = http.createServer((req, res) => {
                 res.writeHead(500);
                 res.end(JSON.stringify({ error: 'Falha ao buscar letra: ' + err.message }));
             });
-            return;
-        }
+        };
 
-        // Com API key: usa a biblioteca oficial
-        const vagalume = new Vagalume(apiKey);
-        vagalume.search(`${artist} ${song}`)
-        .then(data => {
-            if (!data || !data.mus || data.mus.length === 0) {
-                res.writeHead(404);
-                res.end(JSON.stringify({ error: 'Letra nao encontrada no Vagalume' }));
-                return;
-            }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ lyrics: data.mus[0].text }));
-        })
-        .catch(err => {
-            console.error('[VAGALUME Lyrics Error]', err.message);
-            res.writeHead(500);
-            res.end(JSON.stringify({ error: 'Falha ao buscar letra: ' + err.message }));
-        });
+        if (apiKey) {
+            // Com API key: usa a biblioteca oficial, e caso falhe tenta direto
+            const vagalume = new Vagalume(apiKey);
+            vagalume.search(`${artist} ${song}`)
+            .then(data => {
+                if (data && data.lyrics) {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ lyrics: data.lyrics }));
+                } else {
+                    fetchDirectly();
+                }
+            })
+            .catch(err => {
+                console.error('[VAGALUME Library Error, falling back to direct]', err.message || err);
+                fetchDirectly();
+            });
+        } else {
+            fetchDirectly();
+        }
         return;
     }
 
