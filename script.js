@@ -1,0 +1,1638 @@
+// ==========================================
+// FORCE UPDATE: UNREGISTER SERVICE WORKER
+// ==========================================
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+            registration.unregister();
+            console.log('Service Worker Unregistered');
+        }
+    });
+}
+
+// WebSocket Connection
+let ws;
+let reconnectInterval = 2000;
+let clockInterval = null;
+
+// Use the same host and port as the current page
+const hostname = window.location.hostname || 'localhost';
+const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const WS_URL = `${protocol}//${hostname}:${port}`;
+
+// App State
+let songs = [];
+let setlist = [];
+let currentSong = null;
+let currentVerseIndex = -1;
+let isBlackout = false;
+let role = null; // 'display', 'control', or 'bible'
+let editingSongIndex = null; // Track which song is being edited
+
+// --- Initialization ---
+
+// Check URL Hash for role
+function checkHash() {
+    const hash = window.location.hash;
+    if (hash === '#display') {
+        selectRole('display');
+    } else if (hash === '#panel') {
+        selectRole('panel', 'tab-louvor');
+    } else if (hash === '#control') {
+        selectRole('panel', 'tab-louvor');
+    } else if (hash === '#bible') {
+        selectRole('panel', 'tab-biblia');
+    } else if (hash === '#video') {
+        selectRole('panel', 'tab-midia');
+    }
+}
+
+window.onload = () => {
+    checkHash();
+    loadLibrary();
+    loadSetlist();
+
+    // Generate bubbles
+    createBubbles();
+};
+
+function selectRole(selectedRole, startTab = 'tab-louvor') {
+    role = selectedRole;
+    document.getElementById('start-screen').style.display = 'none';
+
+    if (role === 'display') {
+        document.getElementById('display-view').style.display = 'flex';
+        if(document.getElementById('unified-panel')) document.getElementById('unified-panel').style.display = 'none';
+        connectWS();
+        goFullScreen();
+    } else if (role === 'panel') {
+        document.getElementById('display-view').style.display = 'none';
+        if(document.getElementById('unified-panel')) document.getElementById('unified-panel').style.display = 'flex';
+        
+        switchPanelTab(startTab);
+        connectWS();
+
+        // Generate QR Code for sharing (using simple API)
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href.split('#')[0] + '#panel')}`;
+        const img = document.getElementById('qr-code');
+        if(img) {
+            img.src = qrUrl;
+            img.style.display = 'inline-block';
+        }
+    }
+}
+
+function switchPanelTab(tabId) {
+    // Hide all tabs
+    document.querySelectorAll('.panel-tab').forEach(el => el.style.display = 'none');
+    
+    // Show active tab
+    const activeTab = document.getElementById(tabId);
+    if (activeTab) activeTab.style.display = 'block';
+
+    // Update sidebar buttons
+    document.querySelectorAll('.sidebar .nav-item').forEach(btn => btn.classList.remove('active'));
+    
+    // Find button associated with this tab (based on id or onclick)
+    let activeBtn;
+    if(tabId === 'tab-louvor') activeBtn = document.getElementById('btn-tab-louvor');
+    if(tabId === 'tab-biblia') activeBtn = document.getElementById('btn-tab-biblia');
+    if(tabId === 'tab-midia') activeBtn = document.getElementById('btn-tab-midia');
+    if(tabId === 'tab-qr') activeBtn = document.getElementById('btn-tab-qr');
+    
+    if (activeBtn) activeBtn.classList.add('active');
+}
+
+function showStartScreen() {
+    role = null;
+    document.getElementById('start-screen').style.display = 'flex';
+    document.getElementById('display-view').style.display = 'none';
+    if(document.getElementById('unified-panel')) document.getElementById('unified-panel').style.display = 'none';
+
+    // Clear hash without reloading
+    history.pushState("", document.title, window.location.pathname + window.location.search);
+}
+
+function connectWS() {
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+        console.log('Connected to WS');
+        if (role === 'panel') {
+            updateConnectionStatus(true);
+        }
+    };
+
+    ws.onclose = () => {
+        console.log('Disconnected. Reconnecting...');
+        if (role === 'panel') {
+            updateConnectionStatus(false);
+        }
+        setTimeout(connectWS, reconnectInterval);
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'STATE_UPDATE') {
+            handleStateUpdate(data.payload);
+        } else if (data.type === 'LIBRARY_UPDATED') {
+            console.log('Library updated on server, reloading...');
+            loadLibrary();
+        }
+    };
+}
+
+// --- Display Logic ---
+
+function handleStateUpdate(state) {
+    currentSong = state.song;
+    currentVerseIndex = state.verseIndex;
+    isBlackout = !state.show;
+    const isRestScreen = state.restScreen || false;
+
+    if (role === 'display') {
+        renderDisplay(isRestScreen);
+    } else if (role === 'panel') {
+        renderControl();
+        renderBibleControl();
+        renderVideoControl(state.media);
+        renderSetlist();
+        
+        // Toggle Blackout Button Class
+        const btnsBlackout = document.querySelectorAll('.blackout-btn');
+        btnsBlackout.forEach(btnBlackout => {
+            if (isBlackout) {
+                btnBlackout.classList.add('active');
+            } else {
+                btnBlackout.classList.remove('active');
+            }
+        });
+        
+        // Update badges based on what is active
+        // If it's a song, show badge on Louvor
+        // If it's a bible verse, show badge on Biblia
+        // If it's media, show badge on Media
+        document.getElementById('badge-louvor').style.display = 'none';
+        document.getElementById('badge-biblia').style.display = 'none';
+        document.getElementById('badge-midia').style.display = 'none';
+        
+        if (!isRestScreen) {
+            if (state.media && state.media.type !== 'NONE') {
+                document.getElementById('badge-midia').style.display = 'block';
+            } else if (currentSong) {
+                // Determine if it's a bible verse or song by checking the title
+                if (currentSong.titulo && currentSong.titulo.match(/^[1-3]?\s?[a-zA-Záéíóúãõç]+ \d+/)) {
+                    // Simple heuristic: starts with Book Name and Number -> Bible
+                    // Or if current verse has verse number formatting "1. ..."
+                    const firstVerse = currentSong.estrofes[0];
+                    if (firstVerse && firstVerse.match(/^\d+\./)) {
+                        document.getElementById('badge-biblia').style.display = 'block';
+                    } else {
+                        document.getElementById('badge-louvor').style.display = 'block';
+                    }
+                } else {
+                    document.getElementById('badge-louvor').style.display = 'block';
+                }
+            }
+        }
+    }
+
+    // Toggle Rest Screen Button Class (ALL buttons, on all views)
+    const btnRestAll = document.querySelectorAll('.rest-btn');
+    btnRestAll.forEach(btnRest => {
+        if (isRestScreen) {
+            btnRest.classList.add('active');
+            const label = btnRest.querySelector('.action-label');
+            if (label) label.textContent = 'ATIVO';
+        } else {
+            btnRest.classList.remove('active');
+            const label = btnRest.querySelector('.action-label');
+            if (label) label.textContent = 'Descanso';
+        }
+    });
+
+    // Handle Media State globally for Display
+    if (role === 'display') {
+        const videoContainer = document.getElementById('video-container');
+        const imageContainer = document.getElementById('media-image-container');
+        const announcementContainer = document.getElementById('media-announcement-container');
+        const tithesContainer = document.getElementById('media-tithes-container');
+
+        const iframe = document.getElementById('youtube-player');
+        const img = document.getElementById('media-image');
+        const announcementText = document.getElementById('announcement-text');
+
+        // Reset all first
+        videoContainer.style.display = 'none';
+        imageContainer.style.display = 'none';
+        announcementContainer.style.display = 'none';
+        tithesContainer.style.display = 'none';
+        document.getElementById('media-clock-container').style.display = 'none';
+        stopClockDisplay();
+
+        if (!isRestScreen) {
+            if (state.media && state.media.type !== 'NONE') {
+                if (state.media.type === 'VIDEO') {
+                    videoContainer.style.display = 'block';
+                    const newSrc = `https://www.youtube.com/embed/${state.media.payload.id}?autoplay=1&controls=0&rel=0`;
+                    if (iframe.src !== newSrc) iframe.src = newSrc;
+
+                } else if (state.media.type === 'IMAGE') {
+                    imageContainer.style.display = 'flex';
+                    // Stop video audio if switching
+                    iframe.src = '';
+                    img.src = state.media.payload.url;
+                    stopClockDisplay();
+
+                } else if (state.media.type === 'CLOCK') {
+                    // Show clock
+                    stopClockDisplay();
+                    const clockContainer = document.getElementById('media-clock-container');
+                    clockContainer.style.display = 'flex';
+                    iframe.src = '';
+                    startClockDisplay();
+
+                } else if (state.media.type === 'TITHES') {
+                    tithesContainer.style.display = 'flex';
+                    iframe.src = '';
+                    stopClockDisplay();
+
+                } else if (state.media.type === 'ANNOUNCEMENT') {
+                    announcementContainer.style.display = 'flex';
+                    // Stop video audio if switching
+                    iframe.src = '';
+                    
+                    const imgAnnounce = document.getElementById('announcement-display-image');
+                    const textAnnounce = document.getElementById('announcement-text');
+                    
+                    if (state.media.payload.image) {
+                        imgAnnounce.src = state.media.payload.image;
+                        imgAnnounce.style.display = 'block';
+                    } else {
+                        imgAnnounce.src = '';
+                        imgAnnounce.style.display = 'none';
+                    }
+
+                    // Render Rich Text
+                    if (textAnnounce) {
+                        textAnnounce.innerHTML = state.media.payload.html || '';
+                    }
+                }
+            } else {
+                // No media active
+                iframe.src = '';
+            }
+        }
+    }
+}
+
+function loadLibrary() {
+    fetch('lyrics.json?t=' + new Date().getTime()) // Cache busting
+        .then(res => res.json())
+        .then(data => {
+            let serverSongs = normalizeSongs(data);
+            
+            // Merge with local storage custom/edited songs to survive Render ephemeral disk restarts
+            try {
+                const storedCustom = localStorage.getItem('canaa_custom_songs');
+                if (storedCustom) {
+                    const customSongs = JSON.parse(storedCustom);
+                    customSongs.forEach(customSong => {
+                        const index = serverSongs.findIndex(s => s.titulo.toLowerCase() === customSong.titulo.toLowerCase());
+                        if (index !== -1) {
+                            // Replace base song with user's edited version
+                            serverSongs[index] = customSong;
+                        } else {
+                            // Add user's custom song to the list
+                            serverSongs.push(customSong);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Erro ao carregar musicas do cache local:', e);
+            }
+
+            songs = serverSongs;
+            populateSongSelect();
+            if (role === 'control') {
+                renderFullPlaylist();
+            }
+        });
+}
+
+function normalizeSongs(data) {
+    return data.map(song => {
+        let newEstrofes = [];
+        song.estrofes.forEach(verso => {
+            const lines = verso.split('\n');
+            if (lines.length > 2) {
+                for (let i = 0; i < lines.length; i += 2) {
+                    newEstrofes.push(lines.slice(i, i + 2).join('\n'));
+                }
+            } else {
+                newEstrofes.push(verso);
+            }
+        });
+        song.estrofes = newEstrofes;
+        return song;
+    });
+}
+
+function persistSongs() {
+    if (checkConnection()) {
+        ws.send(JSON.stringify({
+            type: 'SAVE_SONGS',
+            payload: songs
+        }));
+    }
+}
+
+function renderDisplay(isRestScreen) {
+    const container = document.getElementById('lyrics-container');
+    const restOverlay = document.getElementById('rest-screen-overlay');
+
+    if (isRestScreen) {
+        // Show Rest Screen, Hide Lyrics and everything else
+        restOverlay.style.display = 'flex';
+        container.style.display = 'none'; // hide lyrics
+        
+        // Hide bubbles
+        const bubblesContainer = document.getElementById('bubbles-container');
+        if (bubblesContainer) bubblesContainer.style.display = 'none';
+
+        // Hide all media
+        document.getElementById('video-container').style.display = 'none';
+        document.getElementById('media-image-container').style.display = 'none';
+        document.getElementById('media-announcement-container').style.display = 'none';
+        document.getElementById('media-tithes-container').style.display = 'none';
+        document.getElementById('media-clock-container').style.display = 'none';
+        
+        // Force stop video playback if running
+        const iframe = document.getElementById('youtube-player');
+        if (iframe && iframe.src) {
+           iframe.src = ''; 
+        }
+        
+    } else {
+        // Hide Rest Screen, Show Lyrics
+        restOverlay.style.display = 'none';
+        container.style.display = 'flex'; // Restore inline-block or whatever calls for it
+        
+        // Restore bubbles
+        const bubblesContainer = document.getElementById('bubbles-container');
+        if (bubblesContainer) bubblesContainer.style.display = 'block';
+
+        // Render Lyrics Logic
+        // Fade out first
+        container.classList.remove('fade-in');
+        container.classList.add('fade-out');
+
+        setTimeout(() => {
+            // Update content
+            if (!currentSong || isBlackout || currentVerseIndex < 0) {
+                container.innerHTML = '';
+            } else {
+                const verseLines = currentSong.estrofes[currentVerseIndex].split('\n');
+                container.innerHTML = verseLines.map(line => `<div class="lyric-line">${line}</div>`).join('');
+            }
+
+            // Fade in
+            container.classList.remove('fade-out');
+            container.classList.add('fade-in');
+        }, 300);
+    }
+}
+
+function createBubbles() {
+    const container = document.getElementById('bubbles-container');
+    const bubbleCount = 25; // More bubbles for bokeh effect
+
+    // Vibrant neon colors
+    const colors = [
+        'rgba(255, 0, 110, ',   // Pink
+        'rgba(58, 134, 255, ',  // Blue
+        'rgba(131, 56, 236, ',  // Purple
+        'rgba(251, 86, 7, ',    // Orange/Red
+        'rgba(255, 190, 11, '   // Yellow
+    ];
+
+    for (let i = 0; i < bubbleCount; i++) {
+        const bubble = document.createElement('div');
+        bubble.classList.add('bubble');
+
+        // Random properties
+        const size = Math.random() * 120 + 40; // 40px to 160px
+        const left = Math.random() * 100;
+        const delay = Math.random() * 20;
+        const duration = Math.random() * 20 + 20; // 20s-40s slow
+
+        // Random Color with variable opacity
+        const colorBase = colors[Math.floor(Math.random() * colors.length)];
+        const opacity = (Math.random() * 0.4) + 0.3; // 0.3 to 0.7
+
+        // Set background color via JS
+        bubble.style.background = `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), ${colorBase}${opacity}))`;
+
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${left}%`;
+        bubble.style.animationDelay = `${-delay}s`;
+        bubble.style.animationDuration = `${duration}s`;
+
+        container.appendChild(bubble);
+    }
+}
+
+function goFullScreen() {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(err => console.log(err));
+    }
+}
+
+// --- Controller Logic ---
+
+function updateConnectionStatus(connected) {
+    // Update status text
+    const statusEl = document.getElementById('connection-status');
+    const dotEl = document.getElementById('connection-dot');
+    const bibleStatusEl = document.getElementById('bible-connection-status');
+
+    const unifiedStatusEl = document.getElementById('unified-connection-status');
+    const unifiedDotEl = document.getElementById('unified-connection-dot');
+
+    if (statusEl) {
+        statusEl.textContent = connected ? 'Conectado' : 'Desconectado';
+    }
+    
+    if (unifiedStatusEl) {
+        unifiedStatusEl.textContent = connected ? 'Conectado' : 'Desconectado';
+    }
+
+    if (dotEl) {
+        if (connected) {
+            dotEl.classList.add('connected');
+        } else {
+            dotEl.classList.remove('connected');
+        }
+    }
+    
+    if (unifiedDotEl) {
+        if (connected) {
+            unifiedDotEl.classList.add('connected');
+            unifiedDotEl.classList.remove('disconnected');
+        } else {
+            unifiedDotEl.classList.remove('connected');
+            unifiedDotEl.classList.add('disconnected');
+        }
+    }
+
+    if (bibleStatusEl) {
+        bibleStatusEl.textContent = connected ? '🟢 Conectado' : '🔴 Desconectado';
+        if (connected) {
+            bibleStatusEl.classList.add('connected');
+        } else {
+            bibleStatusEl.classList.remove('connected');
+        }
+    }
+
+    const videoStatusEl = document.getElementById('video-connection-status');
+    if (videoStatusEl) {
+        videoStatusEl.textContent = connected ? '🟢 Conectado' : '🔴 Desconectado';
+        if (connected) {
+            videoStatusEl.classList.add('connected');
+        } else {
+            videoStatusEl.classList.remove('connected');
+        }
+    }
+}
+
+let filteredSongs = [];
+
+function populateSongSelect() {
+    const select = document.getElementById('song-select');
+    select.innerHTML = '<option value="">Selecione uma música...</option>';
+    songs.forEach((song, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = song.titulo;
+        select.appendChild(option);
+    });
+    filteredSongs = [...songs];
+}
+
+function filterSongs() {
+    const searchInput = document.getElementById('song-search');
+    const resultsContainer = document.getElementById('search-results');
+    const query = searchInput.value.toLowerCase().trim();
+
+    if (!query) {
+        resultsContainer.style.display = 'none';
+        filteredSongs = [...songs];
+        return;
+    }
+
+    filteredSongs = songs.filter(song =>
+        song.titulo.toLowerCase().includes(query) ||
+        (song.estrofes && song.estrofes.some(verse => verse.toLowerCase().includes(query)))
+    );
+
+    // Update results list
+    resultsContainer.innerHTML = '';
+
+    if (filteredSongs.length > 0) {
+        filteredSongs.forEach((song) => {
+            const originalIndex = songs.indexOf(song);
+            const div = document.createElement('div');
+            div.className = 'search-result-item';
+            div.textContent = song.titulo;
+            div.onclick = () => {
+                selectSong(originalIndex);
+                resultsContainer.style.display = 'none';
+                searchInput.value = ''; // Clear search
+            };
+            resultsContainer.appendChild(div);
+        });
+        resultsContainer.style.display = 'block';
+    } else {
+        resultsContainer.innerHTML = '<div class="search-result-item">Nenhuma música encontrada</div>';
+        resultsContainer.style.display = 'block';
+    }
+
+    // Update hidden select
+    const select = document.getElementById('song-select');
+    select.innerHTML = '<option value="">Selecione uma música...</option>';
+    filteredSongs.forEach((song) => {
+        const originalIndex = songs.indexOf(song);
+        const option = document.createElement('option');
+        option.value = originalIndex;
+        option.textContent = song.titulo;
+        select.appendChild(option);
+    });
+}
+
+function showResults() {
+    const searchInput = document.getElementById('song-search');
+    if (searchInput.value.trim().length > 0) {
+        document.getElementById('search-results').style.display = 'block';
+    }
+}
+
+function selectSong(index) {
+    const select = document.getElementById('song-select');
+    select.value = index;
+    loadSelectedSong();
+}
+
+// Close results when clicking outside
+document.addEventListener('click', (e) => {
+    const searchWrapper = document.querySelector('.search-wrapper');
+    if (searchWrapper && !searchWrapper.contains(e.target)) {
+        const results = document.getElementById('search-results');
+        if (results) results.style.display = 'none';
+    }
+});
+
+function openPlaylist() {
+    document.getElementById('playlist-modal').style.display = 'block';
+    renderFullPlaylist();
+}
+
+function closePlaylist() {
+    document.getElementById('playlist-modal').style.display = 'none';
+}
+
+function renderFullPlaylist() {
+    const list = document.getElementById('full-song-list');
+    list.innerHTML = '';
+
+    songs.forEach((song, index) => {
+        const div = document.createElement('div');
+        div.className = 'verse-item'; // Reuse styling
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.alignItems = 'center';
+        div.style.gap = '10px';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.style.flex = '1';
+        contentDiv.style.cursor = 'pointer';
+
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = song.titulo;
+        titleSpan.style.fontWeight = '600';
+
+        contentDiv.appendChild(titleSpan);
+        contentDiv.onclick = () => {
+            selectSong(index);
+            closePlaylist();
+        };
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'icon-btn';
+        editBtn.innerHTML = '✏️';
+        editBtn.style.padding = '8px';
+        editBtn.style.fontSize = '16px';
+        editBtn.onclick = (e) => {
+            e.stopPropagation();
+            closePlaylist();
+            openEditModal(index);
+        };
+
+        div.appendChild(contentDiv);
+        div.appendChild(editBtn);
+        list.appendChild(div);
+    });
+}
+
+
+
+function loadSelectedSong() {
+    const select = document.getElementById('song-select');
+    const index = select.value;
+
+    if (index === "") {
+        alert('Por favor, busque e selecione uma música primeiro.');
+        return;
+    }
+
+    const selectedSong = songs[index];
+
+    // Send to server
+    ws.send(JSON.stringify({
+        type: 'SET_SONG',
+        payload: selectedSong
+    }));
+}
+
+function loadSong() {
+    loadSelectedSong();
+}
+
+function checkConnection() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.error('[DEBUG] WebSocket desconectado! ReadyState:', ws?.readyState);
+        alert("⚠️ ERRO: Desconectado do Servidor!\n\nCertifique-se de que o terminal com 'node server.js' está aberto.\n\nStatus: " + (ws ? `ReadyState ${ws.readyState}` : 'WebSocket não inicializado'));
+        return false;
+    }
+    console.log('[DEBUG] WebSocket conectado OK');
+    return true;
+}
+
+function prevVerse() {
+    if (checkConnection()) ws.send(JSON.stringify({ type: 'PREV_VERSE' }));
+}
+
+function nextVerse() {
+    if (checkConnection()) ws.send(JSON.stringify({ type: 'NEXT_VERSE' }));
+}
+
+function toggleBlackout() {
+    if (checkConnection()) ws.send(JSON.stringify({ type: 'BLACKOUT' }));
+}
+
+function toggleRestScreen() {
+    if (checkConnection()) ws.send(JSON.stringify({ type: 'TOGGLE_REST_SCREEN' }));
+}
+
+function setVerse(index) {
+    if (checkConnection()) {
+        ws.send(JSON.stringify({
+            type: 'SET_VERSE',
+            payload: index
+        }));
+    }
+}
+
+function requestFullScreenDisplay() {
+    alert("Para ativar fullscreen na TV, clique no botão 'TV / Telão' na própria TV.");
+}
+
+function renderControl() {
+    if (!currentSong) return;
+
+    document.getElementById('active-song-title').textContent = currentSong.titulo;
+
+    const list = document.getElementById('verse-list');
+    list.innerHTML = '';
+
+    currentSong.estrofes.forEach((verse, index) => {
+        const div = document.createElement('div');
+        div.className = `verse-item ${index === currentVerseIndex ? 'active' : ''}`;
+
+        // Check if verse has a tag like [Refrão] or [Verso 1] (case insensitive)
+        const tagMatch = verse.match(/^\[(.*?)\]/i);
+        if (tagMatch) {
+            const tag = document.createElement('div');
+            tag.className = 'verse-tag';
+            tag.textContent = tagMatch[1].toUpperCase();
+            div.appendChild(tag);
+
+            // Remove tag from verse text
+            const verseText = verse.replace(/^\[[^\]]+\]\n?/, '');
+            const textNode = document.createTextNode(verseText.replace(/\n/g, ' / '));
+            div.appendChild(textNode);
+        } else {
+            div.textContent = verse.replace(/\n/g, ' / ');
+        }
+
+        div.onclick = () => setVerse(index);
+        list.appendChild(div);
+    });
+}
+
+// --- Add Song Logic ---
+
+// --- Add Song Logic ---
+
+function openAddModal() {
+    console.log("DEBUG: Botão + clicado!");
+    editingSongIndex = null;
+    const modal = document.getElementById('add-song-modal');
+
+    if (!modal) {
+        console.error("ERRO: O elemento '#add-song-modal' não existe no DOM!");
+        alert("Erro ao abrir modal: elemento não encontrado.");
+        return;
+    }
+
+    const header = modal.querySelector('h2');
+    if (header) header.textContent = 'Adicionar Nova Música';
+
+    console.log("DEBUG: Alterando display para block...");
+    modal.style.display = 'block';
+
+    // Reset to online search tab by default
+    switchModalTab('search-online');
+    const searchInput = document.getElementById('online-search-input');
+    if (searchInput) searchInput.value = '';
+    const resultsList = document.getElementById('online-results-list');
+    if (resultsList) resultsList.innerHTML = '';
+}
+
+function switchModalTab(tabId) {
+    // Content
+    document.querySelectorAll('.modal-tab-content').forEach(el => el.classList.remove('active'));
+    const content = document.getElementById(tabId);
+    if (content) content.classList.add('active');
+
+    // Buttons
+    document.querySelectorAll('.tab-container .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        // Simple check to highlight the correct button
+        if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(tabId)) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+// --- Online Search Logic ---
+function searchOnlineSong() {
+    const query = document.getElementById('online-search-input').value.trim();
+    if (!query) return;
+
+    const resultsList = document.getElementById('online-results-list');
+    const loading = document.getElementById('online-loading');
+
+    resultsList.innerHTML = '';
+    loading.style.display = 'block';
+
+    fetch(`/api/search?q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+            loading.style.display = 'none';
+            if (data.error) {
+                resultsList.innerHTML = `<div style="text-align:center; padding:10px;">Erro ao buscar: ${data.error}</div>`;
+                return;
+            }
+            displayOnlineResults(data.data); // lyrics.ovh structure
+        })
+        .catch(err => {
+            loading.style.display = 'none';
+            resultsList.innerHTML = '<div style="text-align:center; padding:10px;">Erro de conexão.</div>';
+            console.error(err);
+        });
+}
+
+function displayOnlineResults(results) {
+    const list = document.getElementById('online-results-list');
+    list.innerHTML = '';
+
+    if (!results || results.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:10px;">Nenhuma música encontrada.</div>';
+        return;
+    }
+
+    results.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'online-result-item';
+        div.innerHTML = `
+            <div class="online-song-title">${item.title}</div>
+            <div class="online-artist-name">${item.artist.name}</div>
+        `;
+        // Pass the Lrclib ID to the selection function
+        div.onclick = () => selectOnlineSong(item.id, item.artist.name, item.title);
+        list.appendChild(div);
+    });
+}
+
+function selectOnlineSong(id, artist, title) {
+    const loading = document.getElementById('online-loading');
+    loading.style.display = 'block';
+    loading.textContent = '⌛ Baixando letra...';
+
+    // Send ID (Lrclib)
+    let apiUrl = `/api/lyrics?id=${id}`;
+
+    fetch(apiUrl)
+        .then(res => res.json())
+        .then(data => {
+            loading.style.display = 'none';
+            loading.textContent = '⌛ Buscando...'; // Reset text
+
+            if (data.error || !data.lyrics) {
+                alert('Erro: Letra não encontrada na biblioteca.');
+                return;
+            }
+
+            // Fill Manual Form
+            document.getElementById('new-song-title').value = title;
+            document.getElementById('new-song-lyrics').value = data.lyrics;
+
+            // Switch to Manual Tab
+            switchModalTab('manual-add');
+        })
+        .catch(err => {
+            loading.style.display = 'none';
+            alert('Erro ao baixar letra.');
+            console.error(err);
+        });
+}
+
+function openEditModal(index) {
+    editingSongIndex = index;
+    const song = songs[index];
+
+    document.querySelector('#add-song-modal h2').textContent = 'Editar Música';
+    document.getElementById('new-song-title').value = song.titulo;
+    // Reconstruct lyrics from verses
+    document.getElementById('new-song-lyrics').value = song.estrofes.join('\n\n');
+
+    document.getElementById('add-song-modal').style.display = 'block';
+    switchModalTab('manual-add'); // Always start editing in manual
+}
+
+function closeAddModal() {
+    editingSongIndex = null;
+    document.getElementById('add-song-modal').style.display = 'none';
+    document.getElementById('new-song-title').value = '';
+    document.getElementById('new-song-lyrics').value = '';
+}
+
+function saveNewSong() {
+    const title = document.getElementById('new-song-title').value.trim();
+    const lyricsRaw = document.getElementById('new-song-lyrics').value.trim();
+
+    if (!title || !lyricsRaw) {
+        alert('Por favor, preencha o título e a letra.');
+        return;
+    }
+
+    // SMART VERSE DETECTION (Hybrid: Blank lines + Max 4 lines per slide)
+    let verses = [];
+    const MAX_LINES = 4;
+
+    // 1. Split by user-defined blank lines first (preserving user intent)
+    const blocks = lyricsRaw.split(/\n\s*\n/).map(v => v.trim()).filter(v => v.length > 0);
+
+    blocks.forEach(block => {
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
+        // 2. If a block is too long (e.g. pasted a whole chorus without spacing), sub-split it
+        if (lines.length > MAX_LINES) {
+            for (let i = 0; i < lines.length; i += MAX_LINES) {
+                const chunk = lines.slice(i, i + MAX_LINES);
+                verses.push(chunk.join('\n'));
+            }
+        } else {
+            verses.push(block);
+        }
+    });
+
+    if (verses.length === 0) {
+        alert('Letra vazia ou inválida.');
+        return;
+    }
+
+    const isEditing = editingSongIndex !== null;
+    const confirmed = confirm(
+        `📋 ${isEditing ? 'Atualizar' : 'Salvar'} música?\n\n` +
+        `Título: ${title}\n` +
+        `Total de estrofes detectadas: ${verses.length}\n\n` +
+        `Clique OK para ${isEditing ? 'atualizar' : 'salvar'} ou Cancelar para revisar.`
+    );
+
+    if (!confirmed) return;
+
+    const updatedSong = {
+        titulo: title,
+        estrofes: verses
+    };
+
+    if (isEditing) {
+        songs[editingSongIndex] = updatedSong;
+    } else {
+        songs.push(updatedSong);
+    }
+
+    // Save to browser localStorage to survive server ephemeral disk restarts
+    try {
+        let customSongs = JSON.parse(localStorage.getItem('canaa_custom_songs') || '[]');
+        // Filter out any existing item with the same title to prevent duplication
+        customSongs = customSongs.filter(s => s.titulo.toLowerCase() !== title.toLowerCase());
+        customSongs.push(updatedSong);
+        localStorage.setItem('canaa_custom_songs', JSON.stringify(customSongs));
+    } catch(e) {
+        console.error('Erro ao salvar musica no cache local:', e);
+    }
+
+    populateSongSelect();
+
+    // Select the song automatically
+    const select = document.getElementById('song-select');
+    select.value = isEditing ? editingSongIndex : songs.length - 1;
+
+    closeAddModal();
+
+    if (checkConnection()) {
+        persistSongs();
+        loadSong();
+    } else {
+        alert('Música salva localmente, mas sistema está desconectado.');
+    }
+}
+
+// --- Bible Logic ---
+
+const bibleBooks = [
+    "Gênesis", "Êxodo", "Levítico", "Números", "Deuteronômio",
+    "Josué", "Juízes", "Rute", "1 Samuel", "2 Samuel", "1 Reis", "2 Reis",
+    "1 Crônicas", "2 Crônicas", "Esdras", "Neemias", "Ester", "Jó", "Salmos",
+    "Provérbios", "Eclesiastes", "Cânticos", "Isaías", "Jeremias", "Lamentações",
+    "Ezequiel", "Daniel", "Oseias", "Joel", "Amós", "Obadias", "Jonas", "Miqueias",
+    "Naum", "Habacuque", "Sofonias", "Ageu", "Zacarias", "Malaquias",
+    "Mateus", "Marcos", "Lucas", "João", "Atos", "Romanos", "1 Coríntios",
+    "2 Coríntios", "Gálatas", "Efésios", "Filipenses", "Colossenses",
+    "1 Tessalonicenses", "2 Tessalonicenses", "1 Timóteo", "2 Timóteo",
+    "Tito", "Filemom", "Hebreus", "Tiago", "1 Pedro", "2 Pedro",
+    "1 João", "2 João", "3 João", "Judas", "Apocalipse"
+];
+
+function populateBibleBooks() {
+    const select = document.getElementById('bible-book');
+    bibleBooks.forEach(book => {
+        const option = document.createElement('option');
+        option.value = book;
+        option.textContent = book;
+        select.appendChild(option);
+    });
+    // Set default to Salmos
+    select.value = "Salmos";
+    document.getElementById('bible-chapter').value = 23;
+}
+
+function renderBibleControl() {
+    if (!currentSong) return;
+
+    document.getElementById('active-bible-ref').textContent = currentSong.titulo;
+
+    const list = document.getElementById('bible-verse-list');
+    list.innerHTML = '';
+
+    currentSong.estrofes.forEach((verse, index) => {
+        const div = document.createElement('div');
+        div.className = `verse-item ${index === currentVerseIndex ? 'active' : ''}`;
+        div.textContent = verse;
+        div.onclick = () => setVerse(index);
+        list.appendChild(div);
+    });
+}
+
+function loadBibleChapter() {
+    const bookIndex = document.getElementById('bible-book').selectedIndex;
+    const bookName = document.getElementById('bible-book').value;
+    const chapterInput = document.getElementById('bible-chapter');
+    const chapter = parseInt(chapterInput.value);
+
+    // Validate
+    if (!bibleData) {
+        alert('A Bíblia offline ainda está carregando. Tente novamente em alguns segundos.');
+        return;
+    }
+
+    if (isNaN(chapter) || chapter < 1) {
+        alert('Capítulo inválido');
+        return;
+    }
+
+    const btn = document.querySelector('#bible-view button.primary');
+    if (btn) {
+        btn.textContent = 'Carregando...';
+        btn.disabled = true;
+    }
+
+    try {
+        const bookData = bibleData[bookIndex];
+        if (!bookData) throw new Error('Livro não encontrado');
+
+        const chapterData = bookData.chapters[chapter - 1];
+        if (!chapterData) throw new Error('Capítulo não encontrado');
+
+        // Verse list for Bible View
+        const verseList = document.getElementById('bible-verse-list');
+        verseList.innerHTML = '';
+
+        // Update active ref
+        document.getElementById('active-bible-ref').textContent = `${bookName} ${chapter}`;
+
+        // Send to server (Initial State)
+        if (checkConnection()) {
+            ws.send(JSON.stringify({
+                type: 'SET_SONG',
+                payload: {
+                    titulo: `${bookName} ${chapter}`,
+                    estrofes: chapterData.map((text, i) => `${i + 1}. ${text}`)
+                }
+            }));
+        }
+
+        // Create verse preview cards
+        chapterData.forEach((text, i) => {
+            const verseNum = i + 1;
+            const div = document.createElement('div');
+            div.className = 'verse-card';
+            div.innerHTML = `<strong>${verseNum}</strong> ${text}`;
+            div.onclick = () => {
+                document.querySelectorAll('.verse-card').forEach(c => c.classList.remove('active'));
+                div.classList.add('active');
+                setVerse(i);
+            };
+            verseList.appendChild(div);
+        });
+
+        // Check if user requested a specific verse
+        const verseInput = document.getElementById('bible-verse');
+        const targetVerse = parseInt(verseInput.value);
+
+        if (!isNaN(targetVerse) && targetVerse >= 1 && targetVerse <= chapterData.length) {
+            setTimeout(() => {
+                const targetDiv = verseList.children[targetVerse - 1];
+                if (targetDiv) {
+                    targetDiv.click();
+                    targetDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+
+    } catch (err) {
+        alert('Erro: ' + err.message);
+        console.error(err);
+    } finally {
+        if (btn) {
+            btn.textContent = 'Carregar';
+            btn.disabled = false;
+        }
+    }
+}
+
+// Global variable for Bible Data
+let bibleData = null;
+
+async function loadBibleOffline() {
+    try {
+        const title = document.getElementById('active-bible-ref');
+        if (title) title.textContent = 'Carregando Bíblia NVI...';
+
+        const res = await fetch('bible-nvi.json');
+        if (!res.ok) throw new Error('Falha ao carregar arquivo da Bíblia');
+        bibleData = await res.json();
+
+        if (title) title.textContent = 'Bíblia NVI Offline Pronta';
+        console.log('Bíblia NVI carregada com sucesso via JSON local.');
+    } catch (err) {
+        console.error('Erro ao carregar Bíblia offline:', err);
+        const title = document.getElementById('active-bible-ref');
+        if (title) title.textContent = 'Erro ao carregar NVI';
+    }
+}
+
+// Call init
+populateBibleBooks();
+
+// --- Video Logic ---
+
+// --- Media Logic (Generalized) ---
+
+function showTithes() {
+    console.log('[DEBUG] showTithes() chamado');
+    // Envia o comando para exibir o painel customizado de HTML
+    if (checkConnection()) {
+        console.log('[DEBUG] Enviando comando SET_MEDIA para Dízimos (HTML personalisado)');
+        ws.send(JSON.stringify({
+            type: 'SET_MEDIA',
+            payload: {
+                type: 'TITHES',
+                payload: {}
+            }
+        }));
+    }
+}
+
+function showClock() {
+    console.log('[DEBUG] showClock() chamado');
+    if (checkConnection()) {
+        ws.send(JSON.stringify({
+            type: 'SET_MEDIA',
+            payload: {
+                type: 'CLOCK',
+                payload: {}
+            }
+        }));
+    }
+}
+
+function startClockDisplay() {
+    function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = now.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+        const clockTimeEl = document.getElementById('clock-time');
+        const clockDateEl = document.getElementById('clock-date');
+        if (clockTimeEl) clockTimeEl.textContent = timeStr;
+        if (clockDateEl) clockDateEl.textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+    }
+    updateClock();
+    clockInterval = setInterval(updateClock, 1000);
+}
+
+function stopClockDisplay() {
+    if (clockInterval) {
+        clearInterval(clockInterval);
+        clockInterval = null;
+    }
+}
+
+let announcementImageBase64 = null;
+
+function formatText(cmd) {
+    document.execCommand(cmd, false, null);
+    document.getElementById('announcement-input').focus();
+}
+
+function formatTextColor(color) {
+    document.execCommand('foreColor', false, color);
+    document.getElementById('announcement-input').focus();
+}
+
+function changeFontSize(direction) {
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        
+        // Se seleção vazia, melhor não fazer nada
+        if (range.collapsed) return;
+
+        const span = document.createElement('span');
+        
+        // Pega tamanho atual ou default
+        let currentSize = 3; // Fonte padrão visualmente grande na TV
+        const parent = range.commonAncestorContainer.parentElement;
+        if (parent && parent.getAttribute('style') && parent.getAttribute('style').includes('font-size')) {
+            const match = parent.getAttribute('style').match(/font-size:\s*([\d.]+)(vh|vw|rem|px)/);
+            if (match) currentSize = parseFloat(match[1]);
+        }
+
+        const newSize = currentSize + (direction * 0.5);
+        span.style.fontSize = `${newSize}vh`; // Usando vh para manter proporção da TV
+        range.surroundContents(span);
+        document.getElementById('announcement-input').focus();
+    }
+}
+
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecione uma imagem.');
+        return;
+    }
+
+    // Limit size to ~2MB just to avoid socket bottlenecks
+    if (file.size > 3 * 1024 * 1024) {
+        alert('A imagem é muito grande. Máximo 3MB.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        announcementImageBase64 = e.target.result;
+        const preview = document.getElementById('announcement-image-preview');
+        preview.src = announcementImageBase64;
+        document.getElementById('image-preview-container').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeImagePreview() {
+    announcementImageBase64 = null;
+    document.getElementById('announcement-image-preview').src = '';
+    document.getElementById('image-preview-container').style.display = 'none';
+    document.getElementById('image-upload-input').value = '';
+}
+
+function showAnnouncement() {
+    console.log('[DEBUG] showAnnouncement() chamado');
+    const editor = document.getElementById('announcement-input');
+    const htmlContent = editor.innerHTML;
+    const textContent = editor.textContent.trim();
+    
+    console.log('[DEBUG] HTML do aviso:', htmlContent);
+
+    if (!textContent && !announcementImageBase64) {
+        console.warn('[DEBUG] Aviso vazio, exibindo alerta');
+        return alert('Digite um aviso ou insira uma imagem!');
+    }
+
+    if (checkConnection()) {
+        console.log('[DEBUG] Enviando comando SET_MEDIA para Aviso (HTML + Image)');
+        ws.send(JSON.stringify({
+            type: 'SET_MEDIA',
+            payload: {
+                type: 'ANNOUNCEMENT',
+                payload: { 
+                    html: htmlContent,
+                    image: announcementImageBase64
+                }
+            }
+        }));
+    }
+}
+
+function playCustomVideo() {
+    console.log('[DEBUG] playCustomVideo() chamado');
+    const input = document.getElementById('video-url-input');
+    const url = input.value.trim();
+    console.log('[DEBUG] URL do vídeo:', url);
+
+    if (!url) {
+        console.warn('[DEBUG] URL vazia, exibindo alerta');
+        alert('Por favor, cole um link do YouTube.');
+        return;
+    }
+
+    const id = extractYouTubeID(url);
+    console.log('[DEBUG] ID extraído:', id);
+
+    if (!id) {
+        console.warn('[DEBUG] ID inválido, exibindo alerta');
+        alert('Link inválido ou não reconhecido.');
+        return;
+    }
+
+    sendMediaCommand('VIDEO', { id: id });
+}
+
+function playPresetVideo() {
+    console.log('[DEBUG] playPresetVideo() chamado');
+    const presetID = 's8Gkn3kFLGE';
+    console.log('[DEBUG] Reproduzindo vídeo preset:', presetID);
+    sendMediaCommand('VIDEO', { id: presetID });
+}
+
+function stopMedia() {
+    console.log('[DEBUG] stopMedia() chamado');
+    if (checkConnection()) {
+        console.log('[DEBUG] Enviando comando STOP_MEDIA');
+        ws.send(JSON.stringify({ type: 'STOP_MEDIA' }));
+    }
+}
+
+// Deprecated separate stopVideo, but keeping alias just in case
+function stopVideo() { stopMedia(); }
+
+function sendMediaCommand(type, payload) {
+    console.log('[DEBUG] sendMediaCommand() chamado com tipo:', type, 'payload:', payload);
+    if (checkConnection()) {
+        console.log('[DEBUG] Enviando comando SET_MEDIA');
+        ws.send(JSON.stringify({
+            type: 'SET_MEDIA',
+            payload: {
+                type: type,
+                payload: payload
+            }
+        }));
+    }
+}
+
+function extractYouTubeID(url) {
+    // Regex for various YouTube formats
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
+
+function renderVideoControl(mediaState) {
+    // Optional status update
+}
+loadBibleOffline();
+
+// --- Vagalume Search ---
+function searchVagalumeSong() {
+    const query = document.getElementById('vagalume-search-input').value.trim();
+    if (!query) return;
+
+    const resultsList = document.getElementById('vagalume-results-list');
+    const loading = document.getElementById('vagalume-loading');
+
+    resultsList.innerHTML = '';
+    loading.style.display = 'block';
+
+    fetch(`/api/search/vagalume?q=${encodeURIComponent(query)}`)
+        .then(res => res.json())
+        .then(data => {
+            loading.style.display = 'none';
+            if (data.error) {
+                resultsList.innerHTML = `<div style="text-align:center; padding:10px; color:#f56565;">Erro ao buscar: ${data.error}</div>`;
+                return;
+            }
+            displayVagalumeResults(data.data);
+        })
+        .catch(err => {
+            loading.style.display = 'none';
+            resultsList.innerHTML = '<div style="text-align:center; padding:10px; color:#f56565;">Erro de conexão.</div>';
+            console.error(err);
+        });
+}
+
+function displayVagalumeResults(results) {
+    const list = document.getElementById('vagalume-results-list');
+    list.innerHTML = '';
+
+    if (!results || results.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:10px; color:#a0aec0;">Nenhuma música encontrada.</div>';
+        return;
+    }
+
+    results.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'online-result-item';
+        div.innerHTML = `
+            <div class="online-song-title">${item.title}</div>
+            <div class="online-artist-name">${item.artist.name}</div>
+        `;
+        div.onclick = () => selectVagalumeSong(item.artist.name, item.title, item.url);
+        list.appendChild(div);
+    });
+}
+
+function selectVagalumeSong(artist, title, url) {
+    const loading = document.getElementById('vagalume-loading');
+    loading.style.display = 'block';
+    loading.textContent = '⌛ Baixando letra...';
+
+    const fetchUrl = `/api/lyrics/vagalume?art=${encodeURIComponent(artist)}&mus=${encodeURIComponent(title)}&url=${encodeURIComponent(url || '')}`;
+
+    fetch(fetchUrl)
+        .then(res => res.json())
+        .then(data => {
+            loading.style.display = 'none';
+            loading.textContent = '⌛ Buscando no Vagalume...'; // Reset text
+
+            if (data.error || !data.lyrics) {
+                alert('Erro: Letra não encontrada no Vagalume.');
+                return;
+            }
+
+            // Fill Manual Form
+            document.getElementById('new-song-title').value = title;
+            document.getElementById('new-song-lyrics').value = data.lyrics;
+
+            // Switch to Manual Tab
+            switchModalTab('manual-add');
+        })
+        .catch(err => {
+            loading.style.display = 'none';
+            loading.textContent = '⌛ Buscando no Vagalume...';
+            alert('Erro ao baixar letra.');
+            console.error(err);
+        });
+}
+
+// --- Setlist System ---
+function loadSetlist() {
+    // 1. Try to load from localStorage first as instant cache/fallback
+    try {
+        const stored = localStorage.getItem('canaa_setlist');
+        if (stored) {
+            setlist = JSON.parse(stored);
+            renderSetlist();
+        }
+    } catch (e) {
+        console.error('Failed to load local setlist cache:', e);
+    }
+
+    // 2. Fetch the server's setlist JSON to stay in sync with other devices
+    fetch('/api/setlist')
+        .then(res => res.json())
+        .then(data => {
+            if (data && Array.isArray(data) && data.length > 0) {
+                setlist = data;
+                // Update local storage too to keep in sync
+                try {
+                    localStorage.setItem('canaa_setlist', JSON.stringify(setlist));
+                } catch(e) {}
+                renderSetlist();
+            }
+        })
+        .catch(err => {
+            console.log('Server setlist not available, using offline cache:', err);
+        });
+}
+
+function saveSetlist() {
+    // 1. Update localStorage instantly
+    try {
+        localStorage.setItem('canaa_setlist', JSON.stringify(setlist));
+    } catch (e) {
+        console.error('Failed to save setlist locally:', e);
+    }
+    renderSetlist();
+
+    // 2. Post to server to sync with other devices
+    fetch('/api/setlist', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(setlist)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data || !data.ok) {
+            console.warn('Server failed to save setlist');
+        }
+    })
+    .catch(err => {
+        console.error('Failed to sync setlist with server:', err);
+    });
+}
+
+function renderSetlist() {
+    const container = document.getElementById('setlist-container');
+    if (!container) return;
+
+    if (setlist.length === 0) {
+        container.innerHTML = `<div style="color: #4a5568; font-size: 12px; text-align: center; padding: 10px;">Nenhuma música na setlist</div>`;
+        return;
+    }
+
+    container.innerHTML = '';
+    setlist.forEach((song, index) => {
+        const div = document.createElement('div');
+        div.className = 'setlist-item';
+
+        // Check if this song is currently playing on the projector
+        const isCurrent = currentSong && currentSong.titulo.toLowerCase() === song.titulo.toLowerCase();
+        if (isCurrent) {
+            div.style.borderColor = 'var(--accent-blue)';
+            div.style.background = 'rgba(0, 168, 255, 0.08)';
+        }
+
+        div.innerHTML = `
+            <div class="setlist-info">
+                <div class="setlist-title">${song.titulo}</div>
+                <div class="setlist-artist">${song.artista || 'Biblioteca'}</div>
+            </div>
+            <div class="setlist-actions">
+                <button class="btn-setlist-del" title="Remover da Setlist">✕</button>
+            </div>
+        `;
+
+        // Click info to load/project song
+        div.querySelector('.setlist-info').onclick = () => {
+            playSetlistSong(index);
+        };
+
+        // Click delete to remove from setlist
+        div.querySelector('.btn-setlist-del').onclick = (e) => {
+            e.stopPropagation();
+            removeFromSetlist(index);
+        };
+
+        container.appendChild(div);
+    });
+}
+
+function playSetlistSong(index) {
+    if (index < 0 || index >= setlist.length) return;
+    const song = setlist[index];
+    
+    // Normalize estrofes if not already formatted properly
+    const normalized = normalizeSongs([song])[0];
+    currentSong = normalized;
+    currentVerseIndex = 0;
+    isBlackout = false;
+    
+    // Send to server
+    if (checkConnection()) {
+        ws.send(JSON.stringify({
+            type: 'SET_SONG',
+            payload: normalized
+        }));
+    }
+    
+    // Update local UI
+    document.getElementById('active-song-title').textContent = song.titulo;
+    renderControl();
+    renderSetlist(); // Re-render to highlight active one
+}
+
+function addToSetlistCurrent() {
+    const select = document.getElementById('song-select');
+    if (!select || select.selectedIndex === -1) {
+        alert('Selecione uma música da lista para adicionar!');
+        return;
+    }
+    
+    const val = select.value;
+    if (val === "") {
+        alert('Selecione uma música válida!');
+        return;
+    }
+    
+    const index = parseInt(val);
+    if (isNaN(index) || index < 0 || index >= songs.length) return;
+    
+    const song = songs[index];
+    
+    // Check if already in setlist
+    const exists = setlist.some(s => s.titulo.toLowerCase() === song.titulo.toLowerCase());
+    if (exists) {
+        alert('Esta música já está na setlist!');
+        return;
+    }
+    
+    setlist.push({
+        titulo: song.titulo,
+        artista: 'Biblioteca',
+        estrofes: song.estrofes
+    });
+    
+    saveSetlist();
+}
+
+function removeFromSetlist(index) {
+    if (index < 0 || index >= setlist.length) return;
+    setlist.splice(index, 1);
+    saveSetlist();
+}
+
+function saveNewSongToSetlist() {
+    const titleInput = document.getElementById('new-song-title');
+    const lyricsInput = document.getElementById('new-song-lyrics');
+    
+    const title = titleInput.value.trim();
+    const lyrics = lyricsInput.value.trim();
+    
+    if (!title || !lyrics) {
+        alert('Por favor, preencha o título e a letra!');
+        return;
+    }
+    
+    // Parse estrofes (double line break splits)
+    const estrofes = lyrics.split(/\n\s*\n/).map(e => e.trim()).filter(e => e.length > 0);
+    
+    if (estrofes.length === 0) {
+        alert('Letra inválida!');
+        return;
+    }
+    
+    // Check if exists
+    const exists = setlist.some(s => s.titulo.toLowerCase() === title.toLowerCase());
+    if (exists) {
+        if (!confirm('Já existe uma música com este nome na setlist. Deseja adicionar mesmo assim?')) {
+            return;
+        }
+    }
+    
+    setlist.push({
+        titulo: title,
+        artista: 'Personalizada',
+        estrofes: estrofes
+    });
+    
+    saveSetlist();
+    closeAddModal();
+}

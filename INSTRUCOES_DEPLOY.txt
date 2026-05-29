@@ -1,0 +1,67 @@
+╔════════════════════════════════════════════════════════════════╗
+║        INSTRUÇÕES PARA DEPLOY NO RAILWAY (SEM GITHUB)         ║
+╚════════════════════════════════════════════════════════════════╝
+
+📋 PASSO A PASSO COMPLETO:
+
+1️⃣ CRIAR CONTA NO RAILWAY (se ainda não tiver)
+   - Acesse: https://railway.app
+   - Clique em "Start a New Project" ou "Login"
+   - Faça login com Google, GitHub ou Email
+   - ✅ Pronto! Conta criada.
+
+2️⃣ EXECUTAR O SCRIPT DE DEPLOY
+   - Vá até a pasta: c:\Sistema
+   - Dê duplo clique no arquivo: DEPLOY_AUTOMATICO.bat
+   - ✅ O script vai fazer TUDO automaticamente!
+
+3️⃣ O QUE VAI ACONTECER:
+   ✓ Instalar a ferramenta do Railway
+   ✓ Abrir o navegador para você fazer login
+   ✓ Conectar ao projeto que você criou
+   ✓ Fazer upload de todos os arquivos
+   ✓ Iniciar o servidor online
+   ✓ Mostrar o URL do seu sistema
+
+4️⃣ APÓS O DEPLOY:
+   - Você vai receber um URL tipo:
+     https://sistema-projecao-xxxxx.up.railway.app
+   
+   - URLs importantes:
+     • Menu: https://SEU-APP.up.railway.app
+     • Controle: https://SEU-APP.up.railway.app/#control
+     • Projeção: https://SEU-APP.up.railway.app/#display
+     • Bíblia: https://SEU-APP.up.railway.app/#bible
+
+═══════════════════════════════════════════════════════════════
+
+⚠️ IMPORTANTE:
+
+• Você tem $5 de crédito GRÁTIS por mês no Railway
+• Isso é suficiente para rodar o sistema tranquilamente
+• Não precisa cartão de crédito para começar
+• O sistema fica online 24/7
+
+═══════════════════════════════════════════════════════════════
+
+🆘 SE DER ALGUM ERRO:
+
+1. Verifique se você tem Node.js instalado
+   - Execute: node --version
+   - Se não tiver, baixe em: https://nodejs.org
+
+2. Verifique se você está conectado à internet
+
+3. Tente executar os comandos manualmente:
+   npm install -g @railway/cli
+   railway login
+   railway init
+   railway up
+
+═══════════════════════════════════════════════════════════════
+
+📞 PRECISA DE AJUDA?
+
+Me chame de volta e eu te ajudo em cada passo! 😊
+
+═══════════════════════════════════════════════════════════════

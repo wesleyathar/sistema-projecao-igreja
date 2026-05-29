@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Igreja Evangélica Caminhando para CANAÃ</title>
+
+    <!-- PWA Support -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6c5ce7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Louvor CANAÃ">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="stylesheet" href="style.css?v=4.0.0">
+</head>
+
+<body>
+
+    <!-- Start Screen / Role Selection -->
+    <div id="start-screen">
+        <div
+            style="position:fixed; top:10px; right:120px; color:black; background:#2ed573; padding:5px 10px; font-weight:bold; border-radius:5px; z-index:9999;">
+            VER: 4.0 UNIFIED</div>
+        <h1>Igreja Evangélica Caminhando para CANAÃ</h1>
+        <div class="role-btn" onclick="selectRole('display')">🖥️ TV / Telão</div>
+        <div class="role-btn" onclick="selectRole('panel', 'tab-louvor')">📱 Painel de Controle</div>
+    </div>
+
+    <!-- Display View (TV) -->
+    <div id="display-view">
+        <div class="bubbles" id="bubbles-container">
+            <!-- Bubbles injected by JS -->
+        </div>
+        <div id="video-container"
+            style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; background:black;">
+            <iframe id="youtube-player" width="100%" height="100%" src="" frameborder="0"
+                allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </div>
+        <div id="media-image-container"
+            style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; background:black; display:flex; justify-content:center; align-items:center;">
+            <img id="media-image" src="" style="width:100%; height:100%; object-fit:cover;">
+        </div>
+        <div id="media-announcement-container"
+            style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; background: rgba(0,0,0,0.88); display:flex; justify-content:center; align-items:center; flex-direction:column; padding: 40px; text-align:center; gap: 30px;">
+            <img id="announcement-display-image" src="" style="max-height: 60vh; max-width: 80vw; border-radius: 15px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); display: none; object-fit: contain;">
+            <h1 id="announcement-text" style="font-size: 7vh; color: white; line-height: 1.4; white-space: normal; width: 100%; max-width: 90vw;">
+            </h1>
+        </div>
+        <div id="lyrics-container">
+            <!-- Lyrics injected by JS -->
+        </div>
+        <!-- REST SCREEN OVERLAY (Custom Design) -->
+        <div id="rest-screen-overlay" class="tithes-bg blur-bg-overlay animate-fade-in" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; flex-direction:column; justify-content:center; align-items:center; overflow:hidden;">
+            <div class="tithes-bg-overlay"></div>
+            
+            <main class="tithes-main" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                
+                <div class="tithes-icon" style="color: #d4af37; margin-bottom: 2rem;">
+                    <img src="logo_igreja_transparent.png" style="width: 18rem; height: 18rem; object-fit: contain; border-radius: 10px;">
+                </div>
+                
+                <h1 style="font-family: 'Crimson Pro', serif; font-size: 10rem; font-style: italic; color: #f3f4f6; filter: drop-shadow(0 10px 8px rgba(0,0,0,0.5)); margin-bottom: 1rem;">
+                    Deus abençoe sua vida!
+                </h1>
+                
+                <p style="font-size: 3.6rem; font-weight: 300; letter-spacing: 0.1em; color: #d1d5db; text-transform: uppercase;">
+                    Igreja Evangélica Caminhando para Canaã
+                </p>
+                
+            </main>
+        </div>
+        <!-- CLOCK OVERLAY (Custom Design) -->
+        <div id="media-clock-container" class="tithes-bg blur-bg-overlay animate-fade-in" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; flex-direction:column; justify-content:center; align-items:center; overflow:hidden;">
+            <div class="tithes-bg-overlay"></div>
+            
+            <main class="tithes-main" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-shadow: 0 10px 20px rgba(0,0,0,0.5);">
+                
+                <div id="clock-time" style="font-size: 18vw; font-weight: 700; color: #fff; font-family: 'Inter', sans-serif; letter-spacing: -2px; line-height:1; filter: drop-shadow(0 0 15px rgba(255,255,255,0.2));">00:00:00</div>
+                <div id="clock-date" style="font-size: 3vw; color: #d4af37; margin-top: 15px; font-family: 'Inter', sans-serif; letter-spacing: 4px; font-weight: 300; text-transform: uppercase;"></div>
+                <div style="font-size: 1.2vw; color: #9ca3af; margin-top: 25px; letter-spacing: 0.2em; font-weight: 300;">HORÁRIO DE BRASÍLIA</div>
+                
+                <div class="tithes-brand-col" style="margin-top: 10vh; border:none; padding:0; flex-direction: row; gap: 15px; align-items: center; opacity: 0.7;">
+                    <div class="tithes-icon" style="margin: 0; padding: 0;">
+                        <img src="logo_igreja_transparent.png" style="width: 6rem; height: 6rem; object-fit: contain; border-radius: 4px;">
+                    </div>
+                    <p class="tithes-church-name" style="font-size: 1.5rem; font-weight: 400; margin: 0; color: #d1d5db; letter-spacing: 0.05em;">Igreja Evangélica Caminhando para Canaã</p>
+                </div>
+            </main>
+        </div>
+
+        <!-- TITHES OVERLAY (Custom Design) -->
+        <div id="media-tithes-container" class="tithes-bg blur-bg-overlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:100; flex-direction:column; justify-content:center; align-items:center; overflow:hidden;">
+            <!-- Background Overlay from User Code -->
+            <div class="tithes-bg-overlay"></div>
+            
+            <main class="tithes-main animate-fade-in">
+                <!-- Scripture Quote Section -->
+                <section class="tithes-quote-section">
+                    <h1 class="tithes-h1">
+                        “Honra ao Senhor com os teus bens e com as primícias de toda a tua renda.”
+                    </h1>
+                    <p class="tithes-reference">Provérbios 3:9</p>
+                </section>
+
+                <!-- Donation Info Section -->
+                <section class="tithes-card">
+                    <div class="tithes-card-inner">
+                        <!-- Pix Key Label -->
+                        <div class="tithes-pix-col">
+                            <span class="tithes-badge">
+                                Chave Pix E-mail
+                            </span>
+                            <h2 class="tithes-pix-key">
+                                igrejacanaa2021@gmail.com
+                            </h2>
+                        </div>
+                        
+                        <!-- Church Branding -->
+                        <div class="tithes-brand-col">
+                            <div class="tithes-icon">
+                                <img src="logo_igreja_transparent.png" style="width: 8rem; height: 8rem; object-fit: contain;">
+                            </div>
+                            <p class="tithes-church-name" style="font-size: 1.5rem; margin-top: 10px;">Igreja Evangélica Caminhando para Canaã</p>
+                        </div>
+                    </div>
+                </section>
+
+                <footer class="tithes-footer">
+                    Deus abençoe sua generosidade
+                </footer>
+            </main>
+        </div>
+    </div>
+
+    <!-- UNIFIED PANEL VIEW (v4.0) -->
+    <div id="unified-panel" style="display: none;" class="shell">
+        
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="app-logo">
+                    <div class="logo-icon">✝️</div>
+                    <div class="logo-text-wrapper">
+                        <div class="logo-text">CANAÃ</div>
+                        <div class="logo-sub">Projeção</div>
+                    </div>
+                </div>
+                <div class="conn-badge">
+                    <span class="dot-g" id="unified-connection-dot"></span>
+                    <span id="unified-connection-status">Desconectado</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-label">Controle</div>
+
+                <div class="nav-item active" id="btn-tab-louvor" onclick="switchPanelTab('tab-louvor')">
+                    <span class="nav-icon">🎵</span>
+                    <span class="nav-label">Louvor</span>
+                    <span class="nav-badge" id="badge-louvor" style="display: none;">AO VIVO</span>
+                </div>
+
+                <div class="nav-item" id="btn-tab-biblia" onclick="switchPanelTab('tab-biblia')">
+                    <span class="nav-icon">📖</span>
+                    <span class="nav-label">Bíblia</span>
+                    <span class="nav-badge" id="badge-biblia" style="display: none;">AO VIVO</span>
+                </div>
+
+                <div class="nav-item" id="btn-tab-midia" onclick="switchPanelTab('tab-midia')">
+                    <span class="nav-icon">🎬</span>
+                    <span class="nav-label">Mídia</span>
+                    <span class="nav-badge" id="badge-midia" style="display: none;">AO VIVO</span>
+                </div>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-label">Sistema</div>
+                <div class="nav-item" id="btn-tab-qr" onclick="switchPanelTab('tab-qr')">
+                    <span class="nav-icon">📱</span>
+                    <span class="nav-label">QR / Terminais</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="nav-item" onclick="showStartScreen()" style="margin-bottom: 0;">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-label">Sair / Menu</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="main-area">
+
+            <!-- LOUVOR TAB -->
+            <div id="tab-louvor" class="panel-tab active">
+                <!-- Top Bar -->
+                <div class="top-bar">
+                    <div>
+                        <div class="page-heading">🎵 Controle de Louvor</div>
+                        <div class="page-sub" id="active-song-title">Nenhuma música selecionada</div>
+                    </div>
+                    <div class="top-actions">
+                        <button class="btn-top danger blackout-btn" onclick="toggleBlackout()">🚫 <span class="action-label">Blackout</span></button>
+                        <button class="btn-top success rest-btn" onclick="toggleRestScreen()">☕ <span class="action-label">Descanso</span></button>
+                        <button class="btn-top secondary" onclick="addToSetlistCurrent()">➕ Setlist</button>
+                        <button class="btn-top primary" onclick="loadSelectedSong()">☁️ Carregar Música</button>
+                    </div>
+                </div>
+
+                <!-- Content Columns -->
+                <div class="content-columns">
+                    
+                    <!-- Left Column -->
+                    <div class="col-left">
+                        
+                        <!-- Search Card -->
+                        <div class="card">
+                            <div class="card-title-flex">
+                                <span>🔍 Buscar Música</span>
+                                <button class="btn-add-song-mini" onclick="openAddModal()">+</button>
+                            </div>
+                            <div class="search-wrapper">
+                                <input type="text" id="song-search" class="search-inp" placeholder="Digite o nome da música..." oninput="filterSongs()" onfocus="showResults()">
+                                <div id="search-results" class="search-results-list"></div>
+                            </div>
+                            <select id="song-select" style="display:none;"><option value="">Carregando...</option></select>
+                        </div>
+
+                        <!-- Nav Card -->
+                        <div class="card">
+                            <div class="card-title">⬆⬇ Navegação</div>
+                            <div class="nav-grid">
+                                <button class="nav-btn-large" onclick="prevVerse()"><span class="icon">⬆</span> Anterior</button>
+                                <button class="nav-btn-large" onclick="nextVerse()"><span class="icon">⬇</span> Próxima</button>
+                            </div>
+                        </div>
+
+                        <!-- Setlist Card -->
+                        <div class="card">
+                            <div class="card-title-flex">
+                                <span>📋 Setlist do Culto</span>
+                            </div>
+                            <div id="setlist-container" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                                <div style="color: #4a5568; font-size: 12px; text-align: center; padding: 10px;">Nenhuma música na setlist</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-right">
+                        
+                        <!-- Verse List -->
+                        <div class="card flex-card">
+                            <div class="card-title">📜 Estrofes</div>
+                            <div id="verse-list" class="verse-list-modern flex-scroll">
+                                <!-- Verses injected by JS -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- BÍBLIA TAB -->
+            <div id="tab-biblia" class="panel-tab" style="display: none;">
+                <!-- Top Bar -->
+                <div class="top-bar">
+                    <div>
+                        <div class="page-heading">📖 Bíblia Sagrada</div>
+                        <div class="page-sub" id="active-bible-ref">Nenhum capítulo</div>
+                    </div>
+                    <div class="top-actions">
+                        <button class="btn-top danger blackout-btn" onclick="toggleBlackout()">🚫 <span class="action-label">Blackout</span></button>
+                        <button class="btn-top success rest-btn" onclick="toggleRestScreen()">☕ <span class="action-label">Descanso</span></button>
+                        <button class="btn-top primary" onclick="loadBibleChapter()">☁️ Carregar Capítulo</button>
+                    </div>
+                </div>
+
+                <!-- Content Columns -->
+                <div class="content-columns">
+                    
+                    <!-- Left Column -->
+                    <div class="col-left">
+                        
+                        <!-- Search Card -->
+                        <div class="card">
+                            <div class="card-title">🔍 Buscar Passagem</div>
+                            <select id="bible-book" class="search-inp" style="margin-bottom: 10px;">
+                                <!-- Populated by JS -->
+                            </select>
+                            <div style="display:flex; gap:10px;">
+                                <input type="number" id="bible-chapter" class="search-inp" placeholder="Cap." min="1" value="1" style="flex:1;">
+                                <input type="number" id="bible-verse" class="search-inp" placeholder="Vers." min="1" style="flex:1;">
+                            </div>
+                        </div>
+
+                        <!-- Nav Card -->
+                        <div class="card">
+                            <div class="card-title">⬆⬇ Navegação</div>
+                            <div class="nav-grid">
+                                <button class="nav-btn-large" onclick="prevVerse()"><span class="icon">⬆</span> Anterior</button>
+                                <button class="nav-btn-large" onclick="nextVerse()"><span class="icon">⬇</span> Próxima</button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="col-right">
+                        
+                        <!-- Verse List -->
+                        <div class="card flex-card">
+                            <div class="card-title">📜 Versículos</div>
+                            <div id="bible-verse-list" class="verse-list-modern flex-scroll">
+                                <!-- Verses injected by JS -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- MÍDIA TAB -->
+            <div id="tab-midia" class="panel-tab" style="display: none;">
+                 <!-- Top Bar -->
+                 <div class="top-bar">
+                    <div>
+                        <div class="page-heading">🎬 Mídia e Extras</div>
+                        <div class="page-sub">Controle de exibição especial no telão</div>
+                    </div>
+                    <div class="top-actions">
+                        <button class="btn-top danger" onclick="stopMedia()"><i data-lucide="octagon-pause" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i> Parar Mídia</button>
+                        <button class="btn-top success rest-btn" onclick="toggleRestScreen()">☕ <span class="action-label">Descanso</span></button>
+                    </div>
+                </div>
+
+                <div class="content-columns media-columns" style="overflow-y: auto;">
+                    <div class="media-grid">
+                        
+                        <!-- Tithes & Offerings -->
+                        <section class="media-card">
+                            <div class="card-header">
+                                <i data-lucide="hand-coins" class="icon-tithes"></i>
+                                <h3>Dízimos e Ofertas</h3>
+                            </div>
+                            <button class="btn-action bg-sky" onclick="showTithes(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Enviado!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'qr-code\' class=\'icon-btn\'></i>Exibir Imagem Pix'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                                <i data-lucide="qr-code" class="icon-btn"></i>
+                                Exibir Imagem Pix
+                            </button>
+                        </section>
+
+                        <!-- Clock Section -->
+                        <section class="media-card">
+                            <div class="card-header">
+                                <i data-lucide="clock" class="icon-clock"></i>
+                                <h3>Relógio</h3>
+                            </div>
+                            <button class="btn-action bg-purple" onclick="showClock(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Exibindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'eye\' class=\'icon-btn\'></i>Exibir Relógio'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                                <i data-lucide="eye" class="icon-btn"></i>
+                                Exibir Relógio
+                            </button>
+                        </section>
+
+                        <!-- Opening Section -->
+                        <section class="media-card">
+                            <div class="card-header">
+                                <i data-lucide="sparkles" class="icon-opening"></i>
+                                <h3>Abertura</h3>
+                            </div>
+                            <button class="btn-action bg-pink" onclick="playPresetVideo(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Reproduzindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'rocket\' class=\'icon-btn\'></i>Abertura Padrão'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                                <i data-lucide="rocket" class="icon-btn"></i>
+                                Abertura Padrão
+                            </button>
+                        </section>
+
+                        <!-- YouTube Section -->
+                        <section class="media-card">
+                            <div class="card-header">
+                                <i data-lucide="youtube" class="icon-youtube"></i>
+                                <h3>Vídeo (YouTube)</h3>
+                            </div>
+                            <div class="input-group">
+                                <input type="text" id="video-url-input" class="media-input search-inp" placeholder="Cole o link aqui...">
+                            </div>
+                            <button class="btn-action bg-sky mt-auto" onclick="playCustomVideo(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Reproduzindo!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'play\' class=\'icon-btn\'></i>Reproduzir'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                                <i data-lucide="play" class="icon-btn fill-current"></i>
+                                Reproduzir
+                            </button>
+                        </section>
+
+                        <!-- Announcements Section -->
+                        <section class="media-card span-2">
+                            <div class="card-header">
+                                <i data-lucide="megaphone" class="icon-announcements"></i>
+                                <h3>Avisos</h3>
+                            </div>
+                            
+                            <div class="editor-container">
+                                <div class="editor-toolbar">
+                                    <button class="format-btn" onclick="formatText('bold')" title="Negrito"><i data-lucide="bold"></i></button>
+                                    <button class="format-btn" onclick="formatText('italic')" title="Itálico"><i data-lucide="italic"></i></button>
+                                    <button class="format-btn" onclick="formatText('underline')" title="Sublinhado"><i data-lucide="underline"></i></button>
+                                    <div class="toolbar-divider"></div>
+                                    <label class="color-picker-label" title="Cor do Texto">
+                                        <input type="color" id="textColorPicker" class="color-picker" onchange="formatTextColor(this.value)">
+                                    </label>
+                                    <div class="toolbar-divider"></div>
+                                    <button class="format-btn text-size-btn" onclick="changeFontSize(1)" title="Aumentar Fonte">A+</button>
+                                    <button class="format-btn text-size-btn" onclick="changeFontSize(-1)" title="Diminuir Fonte">A-</button>
+                                    <div class="toolbar-divider"></div>
+                                    <button class="format-btn" onclick="document.getElementById('image-upload-input').click()" title="Anexar Imagem"><i data-lucide="image"></i></button>
+                                    <input type="file" id="image-upload-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                                </div>
+                                
+                                <div id="announcement-input" class="media-textarea content-editable" contenteditable="true" data-placeholder="Digite o aviso aqui..."></div>
+                                
+                                <div id="image-preview-container" class="image-preview-wrapper" style="display: none;">
+                                    <img id="announcement-image-preview" src="" alt="Preview">
+                                    <button class="remove-image-btn" onclick="removeImagePreview()" title="Remover Imagem">
+                                        <i data-lucide="x"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button class="btn-action bg-sky" onclick="showAnnouncement(); this.innerHTML='<i data-lucide=\'check-circle\' class=\'icon-btn\'></i>Enviado!'; setTimeout(() => { this.innerHTML='<i data-lucide=\'send\' class=\'icon-btn hover-slide\'></i>Exibir Aviso'; lucide.createIcons(); }, 1500); lucide.createIcons();">
+                                <i data-lucide="send" class="icon-btn hover-slide"></i>
+                                Exibir Aviso
+                            </button>
+                        </section>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR TAB -->
+            <div id="tab-qr" class="panel-tab" style="display: none;">
+                <div class="top-bar">
+                    <div>
+                        <div class="page-heading">📱 Sistema / Terminais</div>
+                        <div class="page-sub">Conecte outros dispositivos à rede</div>
+                    </div>
+                </div>
+
+                <div class="content-columns" style="align-items: center; justify-content: center; height: 100%;">
+                    <div class="card" style="text-align: center; padding: 40px; max-width: 400px; margin: 0 auto;">
+                        <h2 style="color: white; margin-bottom: 20px;">QR Code de Acesso</h2>
+                        <div class="qr-container" style="background: white; padding: 20px; border-radius: 12px; display: inline-block; margin-bottom: 20px;">
+                            <img id="qr-code" alt="QR Code" style="width: 200px; height: 200px; display:block;">
+                        </div>
+                        <p style="color: #8b96a5; font-size: 14px;">
+                            Escaneie este código com outro celular ou tablet para acessar o painel de controle ou apenas visualizar como tela de retorno.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div> <!-- End main-area -->
+    </div>
+
+    <!-- Add Song Modal -->
+    <div id="add-song-modal" class="modal-full">
+        <div class="control-header">
+            <div class="header-top">
+                <h2>Adicionar Música</h2>
+                <button class="icon-btn" onclick="closeAddModal()" style="color: white;">✕</button>
+            </div>
+        </div>
+
+            <div class="tab-container">
+                <button class="tab-btn active" onclick="switchModalTab('search-online')">🌐 Buscar LrcLib (Recomendado)</button>
+                <button class="tab-btn" onclick="switchModalTab('search-vagalume')">🇧🇷 Buscar Vagalume (Instável)</button>
+                <button class="tab-btn" onclick="switchModalTab('manual-add')">✏️ Manual</button>
+            </div>
+
+            <!-- Tab 0: Search Online -->
+            <div id="search-online" class="modal-tab-content active">
+                <input type="text" id="online-search-input" placeholder="Digite o nome da música..."
+                    onkeyup="if(event.key === 'Enter') searchOnlineSong()">
+                <button class="btn primary" style="width:100%; margin-bottom:20px;"
+                    onclick="searchOnlineSong()">Buscar no LrcLib</button>
+                <div id="online-loading" style="display:none; text-align:center; padding: 10px; color: white;">⌛ Buscando...</div>
+                <div id="online-results-list"></div>
+            </div>
+
+            <!-- Tab 1: Search Vagalume -->
+            <div id="search-vagalume" class="modal-tab-content">
+                <input type="text" id="vagalume-search-input" placeholder="Buscar música no Vagalume..."
+                    onkeyup="if(event.key === 'Enter') searchVagalumeSong()">
+                <button class="btn primary" style="width:100%; margin-bottom:20px;"
+                    onclick="searchVagalumeSong()">Buscar no Vagalume</button>
+                <div id="vagalume-loading" style="display:none; text-align:center; padding: 10px; color: white;">⌛ Buscando no Vagalume...</div>
+                <div id="vagalume-results-list"></div>
+            </div>
+
+            <!-- Tab 2: Manual Add -->
+            <div id="manual-add" class="modal-tab-content">
+                <input type="text" id="new-song-title" placeholder="Título da Música">
+                <textarea id="new-song-lyrics"
+                    placeholder="Cole a letra aqui... (Use duas quebras de linha para separar estrofes)" style="min-height: 250px;"></textarea>
+                <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn danger" onclick="closeAddModal()" style="flex:1;">Cancelar</button>
+                    <button class="btn secondary" onclick="saveNewSongToSetlist()" style="flex:1;">➕ Salvar na Setlist</button>
+                    <button class="btn primary" onclick="saveNewSong()" style="flex:1;">💾 Salvar na Biblioteca</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js?v=4.0.0"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

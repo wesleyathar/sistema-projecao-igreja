@@ -1,0 +1,72 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  --color-background: oklch(98% 0.02 240);
+  --color-foreground: #000000;
+  /* Preto absoluto */
+
+  --color-card: oklch(100% 0 0);
+  --color-card-foreground: #000000;
+  /* Preto absoluto */
+
+  --color-popover: oklch(100% 0 0);
+  --color-popover-foreground: #000000;
+  /* Preto absoluto */
+
+  --color-primary: oklch(30% 0.1 240);
+  /* Azul escuro */
+  --color-primary-foreground: oklch(98% 0 0);
+
+  --color-secondary: oklch(96% 0.01 240);
+  --color-secondary-foreground: oklch(15% 0.01 240);
+
+  --color-muted: oklch(94% 0.01 240);
+  --color-muted-foreground: #222222;
+  /* Cinza escuro quase preto */
+
+  --color-accent: oklch(96% 0.01 240);
+  --color-accent-foreground: oklch(15% 0.01 240);
+
+  --color-destructive: oklch(60% 0.15 20);
+  --color-destructive-foreground: oklch(98% 0 0);
+
+  --color-border: oklch(90% 0.01 240);
+  --color-input: oklch(90% 0.01 240);
+  --color-ring: oklch(20% 0.02 240);
+
+  --radius-lg: 0.75rem;
+  --radius-md: calc(0.75rem - 2px);
+  --radius-sm: calc(0.75rem - 4px);
+}
+
+/* Dark mode removido para forçar tema claro com texto preto */
+
+/* Custom base styles */
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground) !important;
+  font-family: var(--font-sans);
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.glass-card {
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-lg);
+}
